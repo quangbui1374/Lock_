@@ -24,18 +24,24 @@ TOPIC_HEARTBEAT = f"{MQTT_PREFIX}/heartbeat"  # nhận heartbeat <- ESP
 
 esp_online   = False   # trạng thái ESP
 mqtt_client_ = None    # instance mqtt
+mqtt_connected = False # trạng thái kết nối MQTT của Flask
+waiting_for_face = False
+face_fail_count = 0
 
 # ──────────────────────────────────────────
 #  MQTT CALLBACKS  (paho-mqtt v2.x)
 # ──────────────────────────────────────────
 def on_connect(client, userdata, flags, reason_code, properties):
+    global mqtt_connected
     if reason_code == 0:
+        mqtt_connected = True
         print("[MQTT] Connected to HiveMQ broker")
         client.subscribe(TOPIC_STATUS)
         client.subscribe(TOPIC_HEARTBEAT)
         print(f"[MQTT] Subscribed: {TOPIC_STATUS}")
         print(f"[MQTT] Subscribed: {TOPIC_HEARTBEAT}")
     else:
+        mqtt_connected = False
         print(f"[MQTT] Connect failed, code={reason_code}")
 
 def on_message(client, userdata, msg):
@@ -53,6 +59,12 @@ def on_message(client, userdata, msg):
             trigger = payload.get("trigger", "esp")
             esp_online = True
 
+            if event == "request_face":
+                global waiting_for_face, face_fail_count
+                waiting_for_face = True
+                face_fail_count = 0
+                print("[APP] Received Face ID Request from STM32/ESP32!")
+
             if event in ("unlocked", "locked"):
                 log_data = {
                     "user": f"ESP ({trigger})",
@@ -62,14 +74,17 @@ def on_message(client, userdata, msg):
                     "time":   time.strftime("%Y-%m-%d %H:%M:%S"),
                     "timestamp": time.time()
                 }
-                save_log(log_data)
+                # Offload file I/O sang thread riêng → không block MQTT loop
+                threading.Thread(target=save_log, args=(log_data,), daemon=True).start()
 
     except Exception as e:
         print(f"[MQTT] Message error: {e}")
 
+
 def on_disconnect(client, userdata, flags, reason_code, properties):
-    global esp_online
+    global esp_online, mqtt_connected
     esp_online = False
+    mqtt_connected = False
     print(f"[MQTT] Disconnected, code={reason_code}")
 
 # ──────────────────────────────────────────
@@ -77,20 +92,25 @@ def on_disconnect(client, userdata, flags, reason_code, properties):
 # ──────────────────────────────────────────
 def start_mqtt():
     global mqtt_client_
-    client = mqtt_client.Client(
-        mqtt_client.CallbackAPIVersion.VERSION2,
-        client_id="flask-smartlock-quang1307"
-    )
-    client.on_connect    = on_connect
-    client.on_message    = on_message
-    client.on_disconnect = on_disconnect
-
-    try:
-        client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
-        mqtt_client_ = client
-        client.loop_forever()
-    except Exception as e:
-        print(f"[MQTT] Cannot connect: {e}")
+    while True:
+        try:
+            # Thêm PID vào client_id để tránh xung đột khi Flask chạy debug=True (2 process)
+            cid = f"flask-smartlock-quang1307-{os.getpid()}"
+            client = mqtt_client.Client(
+                mqtt_client.CallbackAPIVersion.VERSION2,
+                client_id=cid
+            )
+            client.on_connect    = on_connect
+            client.on_message    = on_message
+            client.on_disconnect = on_disconnect
+            
+            print(f"[MQTT] Connecting với client_id={cid}")
+            client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
+            mqtt_client_ = client
+            client.loop_forever()
+        except Exception as e:
+            print(f"[MQTT] Rớt mạng kết nối MQTT: {e}. Đang tiến hành thử lại sau 5s...")
+            time.sleep(5)
 
 
 # Khởi động thread MQTT khi import module
@@ -101,14 +121,31 @@ _mqtt_thread.start()
 #  HELPER: Publish command đến ESP
 # ──────────────────────────────────────────
 def mqtt_publish_command(action: str, user: str = "Unknown"):
-    if mqtt_client_ and mqtt_client_.is_connected():
+    if mqtt_client_ is None:
+        print("[MQTT] Client not initialized")
+        return False
+    # Nếu đang ngắt kết nối, chờ tối đa 4s cho reconnect
+    for _ in range(8):
+        if mqtt_connected:
+            break
+        time.sleep(0.5)
+    if not mqtt_connected:
+        print("[MQTT] Không có kết nối sau 4s")
+        return False
+    try:
         time_str = time.strftime("%H:%M")
         payload = json.dumps({"action": action, "user": user, "time": time_str})
-        mqtt_client_.publish(TOPIC_COMMAND, payload)
-        print(f"[MQTT] Published command: {payload}")
-        return True
-    else:
-        print("[MQTT] Not connected – command not sent")
+        result = mqtt_client_.publish(TOPIC_COMMAND, payload, qos=1)
+        # Chờ xác nhận thực sự gửi đi (tối đa 5s)
+        result.wait_for_publish(timeout=5)
+        ok = result.is_published()
+        if ok:
+            print(f"[MQTT] Published OK: {payload}")
+        else:
+            print(f"[MQTT] Published FAILED (not acknowledged)")
+        return ok
+    except Exception as e:
+        print(f"[MQTT] Publish error: {e}")
         return False
 
 # ──────────────────────────────────────────
@@ -249,15 +286,27 @@ def recognize():
         }
         save_log(log_data)
 
-        if status == "granted":
-            db = load_db()
-            if user in db:
-                db[user]["access_count"] = db[user].get("access_count", 0) + 1
-                db[user]["last_access"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                save_db(db)
-
-            # Gửi MQTT mở khóa kèm user + time
-            mqtt_publish_command("unlock", user)
+        global waiting_for_face, face_fail_count
+        if waiting_for_face:
+            if status == "granted":
+                db = load_db()
+                if user in db:
+                    db[user]["access_count"] = db[user].get("access_count", 0) + 1
+                    db[user]["last_access"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                    save_db(db)
+                # Gửi lệnh unlock vao MQTT de ESP32 -> STM32
+                mqtt_publish_command("unlock", user)
+                waiting_for_face = False # Xong layer 2
+                print(f"[APP] Layer 2 OK for user: {user}")
+            elif status == "denied":
+                face_fail_count += 1
+                print(f"[APP] Layer 2 FAILED (Attempt {face_fail_count}/3)")
+                if face_fail_count >= 3:
+                    mqtt_publish_command("temp_lock")
+                    waiting_for_face = False
+                    print("[APP] 3 Failures -> Sent temp_lock")
+        else:
+            print(f"[APP] Face detected ({status}) but NOT waiting for Layer 2. Ignored unlock.")
 
         # ✔ Push SSE xuống tất cả browser ngay lập tức
         sse_push("recognize", {
@@ -269,6 +318,15 @@ def recognize():
         return jsonify({"status": "ok", "unlock": status == "granted"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# ===== LẤY TRẠNG THÁI LAYER 2 =====
+@app.route("/status", methods=["GET"])
+def get_status():
+    global waiting_for_face
+    try:
+        return jsonify({"waiting_for_face": waiting_for_face})
+    except:
+        return jsonify({"waiting_for_face": False})
 
 # ===== GET USERS =====
 @app.route("/users", methods=["GET"])
@@ -386,10 +444,13 @@ def events():
 def esp_status():
     return jsonify({
         "online": esp_online,
+        "mqtt_connected": mqtt_connected,
         "mqtt_broker": MQTT_BROKER,
         "topic_command": TOPIC_COMMAND
     })
 
+
 if __name__ == "__main__":
-    # threaded=True bắt buộc để SSE hoạt động đúng
-    app.run(debug=True, host="0.0.0.0", port=5000, threaded=True)
+    # use_reloader=False QUAN TRỌNG: tránh Flask tạo 2 process
+    # cả 2 cùng client_id MQTT → broker kick nhau → không bao giờ kết nối được
+    app.run(debug=True, host="0.0.0.0", port=5000, threaded=True, use_reloader=False)

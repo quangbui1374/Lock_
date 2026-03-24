@@ -501,9 +501,7 @@ body::after {
 .stat-trend.up { color: var(--green-400); }
 .stat-trend.down { color: var(--red-400); }
 
-/* ===== ARCHITECTURE DIAGRAM ===== */
-.arch-section { margin-bottom: 28px; }
-
+/* ===== SECTION TITLES ===== */
 .section-title {
   font-size: 15px;
   font-weight: 600;
@@ -518,107 +516,6 @@ body::after {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-}
-
-.arch-diagram {
-  background: var(--glass-card);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
-  padding: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  position: relative;
-}
-
-.arch-node {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  text-align: center;
-  min-width: 110px;
-  transition: var(--transition);
-  position: relative;
-}
-
-.arch-node:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255,255,255,0.15);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-
-.arch-node.active-node {
-  border-color: rgba(139, 92, 246, 0.4);
-  background: rgba(139, 92, 246, 0.08);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
-}
-
-.arch-icon { font-size: 28px; margin-bottom: 6px; }
-.arch-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.arch-desc { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
-
-.arch-arrow {
-  display: flex;
-  align-items: center;
-  color: var(--purple-400);
-  font-size: 20px;
-  opacity: 0.6;
-}
-
-.arrow-line {
-  width: 30px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--purple-400), transparent);
-  position: relative;
-  animation: flowLine 2s linear infinite;
-}
-
-.arrow-head {
-  font-size: 22px;
-  color: var(--purple-400);
-  line-height: 1;
-}
-
-@keyframes flowLine {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
-}
-
-.arch-stm {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
-
-.arch-arrow-down {
-  font-size: 24px;
-  color: var(--purple-400);
-  opacity: 0.6;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}
-
-.pulse-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 16px;
-  border: 2px solid rgba(139, 92, 246, 0.3);
-  animation: pulseRing 2s ease-out infinite;
-}
-
-@keyframes pulseRing {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.1); opacity: 0; }
 }
 
 /* ===== RECENT LOGS ===== */

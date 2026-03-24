@@ -244,8 +244,25 @@ def run_system():
         if frame_count % FRAME_SKIP == 0:
             # Liên tục kiểm tra file db.json (nếu ai đó mới đăng ký trên Web)
             load_database()
-
-            result, box, confidence = identify_face(frame)
+            
+            # Kiem tra xem web (app.py) co dang yeu cau quet khuon mat khong
+            waiting_layer2 = False
+            try:
+                res = requests.get(f"{WEB_SERVER}/status", timeout=0.5)
+                if res.status_code == 200:
+                    waiting_layer2 = res.json().get("waiting_for_face", False)
+            except:
+                pass
+            
+            if not waiting_layer2:
+                # Chua co lenh tu ESP32/STM32 -> Khong nhan dien
+                result, box, confidence = None, None, 0.0
+                pending_user = None
+                confirm_counter = 0
+                cv2.putText(frame, "Waiting for Password (Layer 1)...", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            else:
+                cv2.putText(frame, "Face Request (Layer 2) ACTIVE!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                result, box, confidence = identify_face(frame)
 
             # ── Xác nhận đa frame ──
             if result and result != "Unknown":
