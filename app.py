@@ -28,6 +28,11 @@ mqtt_connected = False # trạng thái kết nối MQTT của Flask
 waiting_for_face = False
 face_fail_count = 0
 
+# ── SURGERY STATE MACHINE ──
+surgery_ongoing   = False    # cờ trạng thái ca mổ
+current_surgeon   = ""       # tên bác sĩ trưởng ca
+surgery_start_time = 0       # timestamp bắt đầu ca mổ
+
 # ──────────────────────────────────────────
 #  MQTT CALLBACKS  (paho-mqtt v2.x)
 # ──────────────────────────────────────────
@@ -287,6 +292,8 @@ def recognize():
         save_log(log_data)
 
         global waiting_for_face, face_fail_count
+        global surgery_ongoing, current_surgeon, surgery_start_time
+
         if waiting_for_face:
             if status == "granted":
                 db = load_db()
@@ -294,17 +301,52 @@ def recognize():
                     db[user]["access_count"] = db[user].get("access_count", 0) + 1
                     db[user]["last_access"] = time.strftime("%Y-%m-%d %H:%M:%S")
                     save_db(db)
-                # Gửi lệnh unlock vao MQTT de ESP32 -> STM32
-                mqtt_publish_command("unlock", user)
-                waiting_for_face = False # Xong layer 2
-                print(f"[APP] Layer 2 OK for user: {user}")
+
+                # ── SURGERY STATE MACHINE ──
+                if surgery_ongoing:
+                    # Ca mổ đang diễn ra → CHỈ mở cửa, KHÔNG cập nhật tên
+                    mqtt_publish_command("open_door2_only", user)
+                    print(f"[SURGERY] Surgery ongoing! {user} enters → door only (no display update)")
+                else:
+                    # Chưa có ca mổ → Bác sĩ trưởng check-in
+                    mqtt_publish_command("unlock_door2", user)
+                    surgery_ongoing = True
+                    current_surgeon = user
+                    surgery_start_time = time.time()
+                    print(f"[SURGERY] ★ Surgery STARTED by Dr. {user}")
+
+                    # Push SSE thông báo bắt đầu ca mổ
+                    sse_push("surgery_update", {
+                        "ongoing":   True,
+                        "surgeon":   current_surgeon,
+                        "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "timestamp": surgery_start_time
+                    })
+
+                    # Ghi log bắt đầu ca mổ
+                    surgery_log = {
+                        "user": user,
+                        "status": "surgery_start",
+                        "type": "surgery",
+                        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "timestamp": time.time()
+                    }
+                    threading.Thread(target=save_log, args=(surgery_log,), daemon=True).start()
+
+                waiting_for_face = False
+                face_fail_count = 0
+                print(f"[APP] Layer 2 OK for: {user} -> Door 2")
             elif status == "denied":
                 face_fail_count += 1
                 print(f"[APP] Layer 2 FAILED (Attempt {face_fail_count}/3)")
                 if face_fail_count >= 3:
                     mqtt_publish_command("temp_lock")
                     waiting_for_face = False
-                    print("[APP] 3 Failures -> Sent temp_lock")
+                    face_fail_count = 0
+                    print("[APP] 3 Failures -> Sent temp_lock (OLED fail)")
+                else:
+                    # Bao STM32 hien OLED that bai (thu lai)
+                    mqtt_publish_command("fail_door2", user)
         else:
             print(f"[APP] Face detected ({status}) but NOT waiting for Layer 2. Ignored unlock.")
 
@@ -312,7 +354,8 @@ def recognize():
         sse_push("recognize", {
             "user":   user,
             "status": status,
-            "time":   time.strftime("%Y-%m-%d %H:%M:%S")
+            "time":   time.strftime("%Y-%m-%d %H:%M:%S"),
+            "surgery_ongoing": surgery_ongoing
         })
 
         return jsonify({"status": "ok", "unlock": status == "granted"})
@@ -327,6 +370,64 @@ def get_status():
         return jsonify({"waiting_for_face": waiting_for_face})
     except:
         return jsonify({"waiting_for_face": False})
+
+# ===== SURGERY STATE MACHINE ENDPOINTS =====
+@app.route("/surgery/status", methods=["GET"])
+def get_surgery_status():
+    """Trả về trạng thái ca mổ hiện tại."""
+    elapsed = 0
+    if surgery_ongoing and surgery_start_time > 0:
+        elapsed = int(time.time() - surgery_start_time)
+    return jsonify({
+        "ongoing":      surgery_ongoing,
+        "surgeon":      current_surgeon,
+        "start_time":   time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(surgery_start_time)) if surgery_start_time > 0 else "",
+        "elapsed_sec":  elapsed,
+        "timestamp":    surgery_start_time
+    })
+
+@app.route("/surgery/complete", methods=["POST"])
+def complete_surgery():
+    """Y tá bấm hoàn thành ca mổ → reset state machine."""
+    global surgery_ongoing, current_surgeon, surgery_start_time
+
+    if not surgery_ongoing:
+        return jsonify({"status": "error", "message": "Không có ca mổ nào đang diễn ra"}), 400
+
+    old_surgeon = current_surgeon
+    elapsed = int(time.time() - surgery_start_time) if surgery_start_time > 0 else 0
+
+    # Gửi lệnh MQTT → ESP32 → STM32 để reset màn hình
+    sent = mqtt_publish_command("complete_surgery", old_surgeon)
+
+    # Ghi log hoàn thành ca mổ
+    log_data = {
+        "user": old_surgeon,
+        "status": "surgery_complete",
+        "type": "surgery",
+        "elapsed_sec": elapsed,
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": time.time()
+    }
+    save_log(log_data)
+
+    # Reset state
+    surgery_ongoing = False
+    current_surgeon = ""
+    surgery_start_time = 0
+
+    print(f"[SURGERY] ■ Surgery COMPLETED — Dr. {old_surgeon} — {elapsed}s")
+
+    # Push SSE
+    sse_push("surgery_update", {
+        "ongoing":   False,
+        "surgeon":   "",
+        "completed_surgeon": old_surgeon,
+        "elapsed_sec": elapsed
+    })
+
+    msg = "Đã kết thúc ca mổ" if sent else "Đã kết thúc ca mổ (MQTT chưa kết nối)"
+    return jsonify({"status": "success", "message": msg, "mqtt_sent": sent})
 
 # ===== GET USERS =====
 @app.route("/users", methods=["GET"])
@@ -388,22 +489,38 @@ def stats():
         "denied": denied
     })
 
-# ===== UNLOCK (manual from web) → gửi MQTT đến ESP =====
+# ===== UNLOCK CỬA NGOÀI (manual from web) → gửi MQTT đến ESP =====
 @app.route("/unlock", methods=["POST"])
 def unlock():
-    # Gửi lệnh unlock qua MQTT -> ESP32
-    sent = mqtt_publish_command("unlock", "Thủ công")
-
+    sent = mqtt_publish_command("unlock", "Khẩn cấp Web")
     log_data = {
-        "user": "Manual (Web)",
+        "user": "Khẩn cấp (Web)",
         "status": "granted",
-        "type": "manual_unlock",
+        "type": "emergency_door1",
+        "door": "door1",
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "timestamp": time.time()
     }
     save_log(log_data)
+    msg = "Đã gửi lệnh mở Cửa ngoài" if sent else "MQTT chưa kết nối – lệnh chưa gửi được"
+    return jsonify({"status": "success", "message": msg, "mqtt_sent": sent})
 
-    msg = "Đã gửi lệnh MQTT đến ESP32" if sent else "MQTT chưa kết nối – lệnh chưa gửi được"
+# ===== UNLOCK KHẨN CẤP CỬA PHÒNG MỔ =====
+@app.route("/unlock_door2", methods=["POST"])
+def unlock_door2():
+    data = request.json or {}
+    user = data.get("user", "Khẩn cấp (Web)")
+    sent = mqtt_publish_command("unlock_door2", user)
+    log_data = {
+        "user": user,
+        "status": "granted",
+        "type": "emergency_door2",
+        "door": "door2",
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": time.time()
+    }
+    save_log(log_data)
+    msg = "Đã gửi lệnh mở Phòng Mổ" if sent else "MQTT chưa kết nối – lệnh chưa gửi được"
     return jsonify({"status": "success", "message": msg, "mqtt_sent": sent})
 
 # ===== SSE ENDPOINT =====

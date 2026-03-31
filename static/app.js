@@ -1,7 +1,3 @@
-/* ==========================================
-   FACEGUARD IoT — Main JavaScript Controller
-   ========================================== */
-
 const API_BASE = "";  // empty = same origin (Flask serves frontend)
 
 // ===== STATE =====
@@ -11,6 +7,9 @@ let currentFilter = "all";
 let capturedImage = null;
 let stream = null;
 let currentDeleteTarget = null;
+let emergencyTarget = "door1"; // which door the emergency is for
+let surgeryTimerInterval = null;   // interval cho định kỳ cập nhật thời gian ca mổ
+let surgeryStartTimestamp = 0;     // timestamp bắt đầu ca mổ
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
@@ -19,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadRecentLogs();
   loadUsers();
   loadLogs();
+  loadSurgeryStatus();  // ← load trạng thái ca mổ
   startAutoRefresh();
   connectSSE();       // ← real-time push từ AI server
 });
@@ -40,27 +40,46 @@ function connectSSE() {
   // ── Nhận diện khuôn mặt từ AI ──
   sseSource.addEventListener("recognize", (e) => {
     const data = JSON.parse(e.data);
-    const { user, status, time } = data;
-
+    const { user, status, time, surgery_ongoing } = data;
     console.log("[SSE] Nhận diện:", data);
 
-    // 1. Toast notification ngay lập tức
     if (status === "granted") {
-      showToast("success", `🔓 <b>${user}</b> được vào lúc ${time}`, 6000);
+      if (surgery_ongoing) {
+        showToast("info", `🚨 <b>${user}</b> vào Phòng Mổ (ca mổ đang diễn ra)`, 4000);
+      } else {
+        showToast("success", `🔓 <b>${user}</b> vào Phòng Mổ lúc ${time}`, 6000);
+      }
+      // Cập nhật trạng thái cửa 2
+      updateDoorStatus("door2", "open", surgery_ongoing ? null : user);
+      setTimeout(() => updateDoorStatus("door2", "closed"), 30000);
     } else {
-      showToast("warning", `⚠️ Người lạ phát hiện lúc ${time}`, 5000);
+      showToast("warning", `⚠️ Nhận diện thất bại lúc ${time}`, 5000);
     }
 
-    // 2. Cập nhật stats + logs ngay không cần đợi auto-refresh
     loadStats();
     loadRecentLogs();
     loadLogs();
 
-    // 3. Flash hiệu ứng trên dashboard nếu đang ở trang dashboard
     const activePage = document.querySelector(".page.active");
     if (activePage && activePage.id === "page-dashboard") {
       flashDashboard(status);
     }
+  });
+
+  // ── Surgery State Update ──
+  sseSource.addEventListener("surgery_update", (e) => {
+    const data = JSON.parse(e.data);
+    console.log("[SSE] Surgery update:", data);
+    updateSurgeryPanel(data);
+
+    if (data.ongoing) {
+      showToast("info", `🏥 Ca mổ bắt đầu — BS: <b>${data.surgeon}</b>`, 6000);
+    } else if (data.completed_surgeon) {
+      const mins = Math.floor((data.elapsed_sec || 0) / 60);
+      showToast("success", `✅ Ca mổ hoàn thành — BS: <b>${data.completed_surgeon}</b> (${mins} phút)`, 8000);
+    }
+    loadRecentLogs();
+    loadLogs();
   });
 
   sseSource.onerror = () => {
@@ -68,8 +87,50 @@ function connectSSE() {
     document.getElementById("server-status-dot").className = "status-indicator offline";
     document.getElementById("server-status-text").textContent = "Mất kết nối";
     sseSource.close();
-    setTimeout(connectSSE, 3000);  // tự reconnect
+    setTimeout(connectSSE, 3000);
   };
+}
+
+// Cập nhật trạng thái cửa trên dashboard
+function updateDoorStatus(door, state, doctorName) {
+  if (door === "door1") {
+    const badge = document.getElementById("door1-badge");
+    const card  = document.getElementById("door1-card");
+    if (!badge) return;
+    if (state === "open") {
+      badge.textContent = "🔓 Đang mở";
+      badge.style.background = "rgba(74,222,128,0.15)";
+      badge.style.color = "#4ade80";
+      card.style.borderColor = "rgba(74,222,128,0.4)";
+    } else {
+      badge.textContent = "🔒 Đang đóng";
+      badge.style.background = "";
+      badge.style.color = "";
+      card.style.borderColor = "";
+    }
+  } else {
+    const badge  = document.getElementById("door2-badge");
+    const card   = document.getElementById("door2-card");
+    const docRow = document.getElementById("door2-doctor");
+    const docName = document.getElementById("door2-doctor-name");
+    if (!badge) return;
+    if (state === "open") {
+      badge.textContent = "🔓 Đang mở";
+      badge.style.background = "rgba(139,92,246,0.2)";
+      badge.style.color = "#a78bfa";
+      card.style.borderColor = "rgba(139,92,246,0.5)";
+      if (doctorName && docRow && docName) {
+        docRow.style.display = "block";
+        docName.textContent = doctorName;
+      }
+    } else {
+      badge.textContent = "🔒 Đang đóng";
+      badge.style.background = "";
+      badge.style.color = "";
+      card.style.borderColor = "";
+      if (docRow) docRow.style.display = "none";
+    }
+  }
 }
 
 // Flash hiệu ứng khi có người quét
@@ -77,13 +138,10 @@ function flashDashboard(status) {
   const color = status === "granted"
     ? "rgba(74, 222, 128, 0.08)"
     : "rgba(248, 113, 113, 0.08)";
-
   const dashboard = document.getElementById("page-dashboard");
   dashboard.style.transition = "background 0.2s";
   dashboard.style.background = color;
-  setTimeout(() => {
-    dashboard.style.background = "";
-  }, 800);
+  setTimeout(() => { dashboard.style.background = ""; }, 800);
 }
 
 
@@ -146,7 +204,101 @@ function refreshAll() {
   loadRecentLogs();
   loadUsers();
   loadLogs();
+  loadSurgeryStatus();
   showToast("success", "🔄 Đã làm mới dữ liệu!");
+}
+
+// ===== SURGERY STATE MACHINE =====
+async function loadSurgeryStatus() {
+  const data = await apiFetch("/surgery/status");
+  if (!data) return;
+  updateSurgeryPanel(data);
+}
+
+function updateSurgeryPanel(data) {
+  const idleEl   = document.getElementById("surgery-idle");
+  const activeEl = document.getElementById("surgery-active");
+  const panelInner = document.getElementById("surgery-panel-inner");
+  if (!idleEl || !activeEl) return;
+
+  if (data.ongoing) {
+    idleEl.style.display = "none";
+    activeEl.style.display = "block";
+    panelInner.classList.add("active");
+
+    // Cập nhật tên bác sĩ
+    const nameEl = document.getElementById("surgery-surgeon-name");
+    const avatarEl = document.getElementById("surgery-avatar");
+    if (nameEl) nameEl.textContent = data.surgeon || "—";
+    if (avatarEl) avatarEl.textContent = (data.surgeon || "B")[0].toUpperCase();
+
+    // Bắt đầu đếm thời gian
+    surgeryStartTimestamp = data.timestamp || (Date.now() / 1000 - (data.elapsed_sec || 0));
+    startSurgeryTimer();
+  } else {
+    idleEl.style.display = "flex";
+    activeEl.style.display = "none";
+    panelInner.classList.remove("active");
+    stopSurgeryTimer();
+  }
+}
+
+function startSurgeryTimer() {
+  stopSurgeryTimer();
+  const timerEl = document.getElementById("surgery-timer");
+  if (!timerEl) return;
+
+  function tick() {
+    const elapsed = Math.floor(Date.now() / 1000 - surgeryStartTimestamp);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    timerEl.textContent = `${h}:${m}:${s}`;
+  }
+  tick();
+  surgeryTimerInterval = setInterval(tick, 1000);
+}
+
+function stopSurgeryTimer() {
+  if (surgeryTimerInterval) {
+    clearInterval(surgeryTimerInterval);
+    surgeryTimerInterval = null;
+  }
+  const timerEl = document.getElementById("surgery-timer");
+  if (timerEl) timerEl.textContent = "00:00:00";
+}
+
+async function completeSurgery() {
+  if (!confirm("✅ Xác nhận HOÀN THÀNH ca mổ?\n\nHệ thống sẽ:\n• Xóa tên bác sĩ trên màn hình\n• Trả phòng về trạng thái Trống")) {
+    return;
+  }
+
+  const btn = document.getElementById("btn-complete-surgery");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Đang xử lý...';
+  }
+
+  const data = await apiFetch("/surgery/complete", { method: "POST" });
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Hoàn thành ca mổ`;
+  }
+
+  if (data && data.status === "success") {
+    showToast("success", `✅ ${data.message}`, 5000);
+    updateSurgeryPanel({ ongoing: false });
+    loadRecentLogs();
+    loadStats();
+  } else {
+    const msg = data?.message || "Đã xảy ra lỗi";
+    showToast("error", `❌ ${msg}`);
+  }
 }
 
 // ===== API FUNCTIONS =====
@@ -207,19 +359,22 @@ function animateNumber(id, target) {
   }, 20);
 }
 
-// ===== RECENT LOGS (Dashboard) =====
+// ===== RECENT LOGS (Dashboard) - chỉ hiện bác sĩ phòng mổ =====
 async function loadRecentLogs() {
   const data = await apiFetch("/logs");
   if (!data) return;
 
   const container = document.getElementById("recent-logs");
-  const recent = data.slice(0, 6);
+  // Chỉ lấy log access phòng mổ (type = access, granted)
+  const recent = data
+    .filter(l => l.type === "access" && l.status === "granted")
+    .slice(0, 6);
 
   if (recent.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <p>Chưa có hoạt động nào</p>
+        <div class="empty-icon">🏥</div>
+        <p>Chưa có bác sĩ nào vào phòng mổ</p>
       </div>`;
     return;
   }
@@ -228,18 +383,15 @@ async function loadRecentLogs() {
 }
 
 function createRecentLogHTML(log) {
-  const badgeClass = getBadgeClass(log.status);
-  const badgeText = getBadgeText(log.status);
   const initial = (log.user || "?")[0].toUpperCase();
-
   return `
     <div class="recent-log-item">
-      <div class="log-avatar">${initial}</div>
+      <div class="log-avatar" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">${initial}</div>
       <div class="log-info">
-        <div class="log-name">${escapeHtml(log.user || "Unknown")}</div>
+        <div class="log-name">👨‍⚕️ ${escapeHtml(log.user || "Unknown")}</div>
         <div class="log-time">${formatTime(log.time)}</div>
       </div>
-      <span class="badge ${badgeClass}">${badgeText}</span>
+      <span class="badge badge-granted">✓ Vào PM</span>
     </div>`;
 }
 
@@ -377,36 +529,37 @@ function applyLogFilter() {
 function renderLogsTable(logs) {
   const tbody = document.getElementById("logs-tbody");
 
-  if (logs.length === 0) {
+  // Chỉ hiện log access phòng mổ
+  const filtered = logs.filter(l => l.type === "access");
+
+  if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5">
+        <td colspan="4">
           <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <p>Không có dữ liệu</p>
+            <div class="empty-icon">🏥</div>
+            <p>Chưa có dữ liệu vào phòng mổ</p>
           </div>
         </td>
       </tr>`;
     return;
   }
 
-  tbody.innerHTML = logs.map((log, i) => {
-    const badgeClass = getBadgeClass(log.status);
-    const badgeText = getBadgeText(log.status);
+  tbody.innerHTML = filtered.map((log, i) => {
+    const badgeClass = log.status === "granted" ? "badge-granted" : "badge-denied";
+    const badgeText  = log.status === "granted" ? "✓ Vào" : "✗ Từ chối";
     const initial = (log.user || "?")[0].toUpperCase();
-    const typeIcon = getTypeIcon(log.type);
 
     return `
       <tr class="row-enter">
         <td class="log-num">${i + 1}</td>
         <td>
           <div class="log-user-cell">
-            <div class="icon">${initial}</div>
-            <span>${escapeHtml(log.user || "Unknown")}</span>
+            <div class="icon" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">${initial}</div>
+            <span>👨‍⚕️ ${escapeHtml(log.user || "Unknown")}</span>
           </div>
         </td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        <td class="log-type-cell">${typeIcon} ${log.type || "access"}</td>
         <td class="log-time-cell">${formatTime(log.time)}</td>
       </tr>`;
   }).join("");
@@ -555,28 +708,11 @@ async function registerUser() {
   }
 }
 
-// ===== MANUAL UNLOCK =====
-function manualUnlock() {
-  document.getElementById("unlock-modal").classList.add("show");
-}
+// ===== MANUAL UNLOCK (legacy, không dùng nữa) =====
+function manualUnlock() { openEmergency('door1'); }
+function closeModal() {}
+async function confirmUnlock() {}
 
-function closeModal() {
-  document.getElementById("unlock-modal").classList.remove("show");
-}
-
-async function confirmUnlock() {
-  closeModal();
-  const data = await apiFetch("/unlock", { method: "POST" });
-
-  if (data && data.status === "success") {
-    showToast("success", "🔓 Đã gửi lệnh mở khóa đến STM32!");
-    // Add to recent logs instantly
-    loadRecentLogs();
-    loadLogs();
-  } else {
-    showToast("error", "❌ Không thể gửi lệnh mở khóa");
-  }
-}
 
 // ===== TOAST NOTIFICATION =====
 function showToast(type, message, duration = 4000) {
@@ -666,9 +802,6 @@ document.addEventListener("keydown", e => {
 });
 
 // Close modal on overlay click
-document.getElementById("unlock-modal").addEventListener("click", function(e) {
-  if (e.target === this) closeModal();
-});
 document.getElementById("delete-modal").addEventListener("click", function(e) {
   if (e.target === this) closeDeleteModal();
 });
@@ -677,21 +810,31 @@ document.getElementById("emergency-modal").addEventListener("click", function(e)
 });
 
 // Make sure modals are hidden on init
-document.getElementById("unlock-modal").classList.remove("show");
 document.getElementById("delete-modal").classList.remove("show");
 
 // ===== EMERGENCY UNLOCK =====
-const EMERGENCY_COUNTDOWN = 5;        // giây
-const CIRCUMFERENCE = 2 * Math.PI * 33;  // 207.3px
+const EMERGENCY_COUNTDOWN = 5;
+const CIRCUMFERENCE = 2 * Math.PI * 33;
 let emergencyTimer  = null;
 let emergencyCount  = EMERGENCY_COUNTDOWN;
 
-function openEmergency() {
+function openEmergency(door) {
+  emergencyTarget = door || "door1";
   emergencyCount = EMERGENCY_COUNTDOWN;
 
-  // Reset UI
-  const numEl    = document.getElementById("countdown-number");
-  const circleEl = document.getElementById("countdown-circle");
+  // Cập nhật tiêu đề modal theo cửa
+  const title = document.getElementById("emergency-modal-title");
+  const desc  = document.getElementById("emergency-modal-desc");
+  if (emergencyTarget === "door2") {
+    if (title) title.textContent = "⚠️ Mở khẩn cấp Phòng Mổ";
+    if (desc) desc.textContent = "Mở cửa Phòng Mổ ngay lập tức qua MQTT";
+  } else {
+    if (title) title.textContent = "⚠️ Mở khẩn cấp Cửa ngoài";
+    if (desc)  desc.textContent = "Mở cửa ngoài ngay lập tức qua MQTT";
+  }
+
+  const numEl     = document.getElementById("countdown-number");
+  const circleEl  = document.getElementById("countdown-circle");
   const confirmBtn = document.getElementById("emergency-confirm-btn");
   const cancelBtn  = document.getElementById("emergency-cancel-btn");
 
@@ -702,16 +845,12 @@ function openEmergency() {
 
   document.getElementById("emergency-modal").classList.add("show");
 
-  // Start countdown
   clearInterval(emergencyTimer);
   emergencyTimer = setInterval(() => {
     emergencyCount--;
     numEl.textContent = emergencyCount;
-
-    // Animate circle: drain from full → 0
     const progress = emergencyCount / EMERGENCY_COUNTDOWN;
     circleEl.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
-
     if (emergencyCount <= 0) {
       clearInterval(emergencyTimer);
       closeEmergency();
@@ -734,24 +873,27 @@ async function confirmEmergency() {
   cancelBtn.disabled  = true;
   confirmBtn.innerHTML = `<span class="spinner"></span> Đang gửi...`;
 
-  // Gọi API unlock → Flask → MQTT → ESP32
-  const data = await apiFetch("/unlock", { method: "POST" });
+  // Gửi đến đúng route tùy theo cửa
+  const url = emergencyTarget === "door2" ? "/unlock_door2" : "/unlock";
+  const data = await apiFetch(url, { method: "POST", body: JSON.stringify({user: "Khẩn cấp (Web)"}) });
 
   closeEmergency();
 
   if (data && data.status === "success") {
     const mqttOk = data.mqtt_sent;
+    const doorLabel = emergencyTarget === "door2" ? "Phòng Mổ" : "Cửa ngoài";
     showToast(
       "success",
       mqttOk
-        ? "🔓 Đã gửi lệnh MQTT! ESP32 đang mở khóa..."
-        : "⚠️ Lệnh đã ghi nhưng MQTT chưa kết nối với ESP32",
+        ? `🔓 Đã gửi lệnh MQTT! ${doorLabel} đang mở...`
+        : `⚠️ Ghi nhận nhưng MQTT chưa kết nối ESP32`,
       5000
     );
+    if (emergencyTarget === "door1") updateDoorStatus("door1", "open");
+    if (emergencyTarget === "door2") updateDoorStatus("door2", "open", "Khẩn cấp");
     loadRecentLogs();
     loadStats();
   } else {
     showToast("error", "❌ Không thể gửi lệnh mở khóa");
   }
 }
-

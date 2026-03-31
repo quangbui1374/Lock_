@@ -1,10 +1,573 @@
 [
     {
+        "user": "quang",
+        "status": "surgery_complete",
+        "type": "surgery",
+        "elapsed_sec": 118,
+        "time": "2026-03-31 16:12:30",
+        "timestamp": 1774948350.985266
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-03-31 16:11:35",
+        "timestamp": 1774948295.8627956
+    },
+    {
+        "user": "quang",
+        "status": "surgery_start",
+        "type": "surgery",
+        "time": "2026-03-31 16:10:32",
+        "timestamp": 1774948232.0107303
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-03-31 16:10:30",
+        "timestamp": 1774948230.6380517
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-31 16:10:09",
+        "timestamp": 1774948209.6052818
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-31 16:10:02",
+        "timestamp": 1774948202.9270358
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-31 16:09:57",
+        "timestamp": 1774948197.5130856
+    },
+    {
         "user": "ESP (stm32)",
         "status": "locked",
         "type": "esp_event",
         "event": "locked",
-        "time": "2026-03-24 22:59:10",
-        "timestamp": 1774367950.9127824
+        "time": "2026-03-31 16:09:30",
+        "timestamp": 1774948170.4238086
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-31 16:09:23",
+        "timestamp": 1774948163.0836253
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-31 16:09:16",
+        "timestamp": 1774948156.6132224
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-31 16:09:07",
+        "timestamp": 1774948147.9309123
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-31 16:09:00",
+        "timestamp": 1774948140.1284275
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-31 16:08:46",
+        "timestamp": 1774948126.083374
+    },
+    {
+        "user": "quang",
+        "status": "surgery_complete",
+        "type": "surgery",
+        "elapsed_sec": 96,
+        "time": "2026-03-30 23:55:42",
+        "timestamp": 1774889742.2082002
+    },
+    {
+        "user": "phong",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-03-30 23:55:12",
+        "timestamp": 1774889712.1636467
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-30 23:55:04",
+        "timestamp": 1774889704.8276286
+    },
+    {
+        "user": "quang",
+        "status": "surgery_start",
+        "type": "surgery",
+        "time": "2026-03-30 23:54:05",
+        "timestamp": 1774889645.4587882
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-03-30 23:54:04",
+        "timestamp": 1774889644.9176853
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-30 23:38:24",
+        "timestamp": 1774888704.9861197
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-30 23:38:17",
+        "timestamp": 1774888697.9059227
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-03-30 23:38:11",
+        "timestamp": 1774888691.9566424
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 22:57:23",
+        "timestamp": 1774886243.5738022
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 22:57:09",
+        "timestamp": 1774886229.7174404
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 22:50:57",
+        "timestamp": 1774885857.3366983
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 22:50:22",
+        "timestamp": 1774885822.3542087
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 22:35:08",
+        "timestamp": 1774884908.4475331
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 22:34:59",
+        "timestamp": 1774884899.7447639
+    },
+    {
+        "user": "Khẩn cấp (Web)",
+        "status": "granted",
+        "type": "emergency_door2",
+        "door": "door2",
+        "time": "2026-03-30 22:04:48",
+        "timestamp": 1774883088.010612
+    },
+    {
+        "user": "Khẩn cấp (Web)",
+        "status": "granted",
+        "type": "emergency_door2",
+        "door": "door2",
+        "time": "2026-03-30 22:04:31",
+        "timestamp": 1774883071.0098357
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 22:04:24",
+        "timestamp": 1774883064.1547248
+    },
+    {
+        "user": "ESP (Khẩn cấp Web)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 22:04:13",
+        "timestamp": 1774883053.532503
+    },
+    {
+        "user": "Khẩn cấp (Web)",
+        "status": "granted",
+        "type": "emergency_door1",
+        "door": "door1",
+        "time": "2026-03-30 22:04:13",
+        "timestamp": 1774883053.27081
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:52",
+        "timestamp": 1774880752.751641
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:38",
+        "timestamp": 1774880738.515457
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:37",
+        "timestamp": 1774880737.1462514
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:36",
+        "timestamp": 1774880736.108871
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:20",
+        "timestamp": 1774880720.7255394
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:25:01",
+        "timestamp": 1774880701.3633547
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:25:00",
+        "timestamp": 1774880700.7472012
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:24:59",
+        "timestamp": 1774880699.5523992
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:45",
+        "timestamp": 1774880565.4627535
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:42",
+        "timestamp": 1774880562.5653422
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:37",
+        "timestamp": 1774880557.876791
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:35",
+        "timestamp": 1774880555.6290338
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:35",
+        "timestamp": 1774880555.2180493
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:34",
+        "timestamp": 1774880554.9989204
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:34",
+        "timestamp": 1774880554.3857214
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:34",
+        "timestamp": 1774880554.0347009
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:33",
+        "timestamp": 1774880553.764214
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:28",
+        "timestamp": 1774880548.656229
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:28",
+        "timestamp": 1774880548.3971543
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:24",
+        "timestamp": 1774880544.440147
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:23",
+        "timestamp": 1774880543.396464
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:22",
+        "timestamp": 1774880542.017327
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:22",
+        "timestamp": 1774880542.015958
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:21",
+        "timestamp": 1774880541.685449
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:13",
+        "timestamp": 1774880533.920545
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:13",
+        "timestamp": 1774880533.911495
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "locked",
+        "type": "esp_event",
+        "event": "locked",
+        "time": "2026-03-30 21:22:13",
+        "timestamp": 1774880533.616767
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:13",
+        "timestamp": 1774880533.2993746
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:12",
+        "timestamp": 1774880532.616161
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:12",
+        "timestamp": 1774880532.2922661
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:10",
+        "timestamp": 1774880530.975587
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:10",
+        "timestamp": 1774880530.9725988
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:10",
+        "timestamp": 1774880530.796843
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:10",
+        "timestamp": 1774880530.3745222
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:10",
+        "timestamp": 1774880530.0496151
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:09",
+        "timestamp": 1774880529.4208977
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:09",
+        "timestamp": 1774880529.4163232
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:09",
+        "timestamp": 1774880529.1034598
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:09",
+        "timestamp": 1774880529.1018023
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:08",
+        "timestamp": 1774880528.582493
+    },
+    {
+        "user": "ESP (stm32)",
+        "status": "granted",
+        "type": "esp_event",
+        "event": "unlocked",
+        "time": "2026-03-30 21:22:07",
+        "timestamp": 1774880527.922858
     }
 ]

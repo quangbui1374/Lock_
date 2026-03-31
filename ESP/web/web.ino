@@ -31,6 +31,9 @@
 const char *ssid     = "Xoi Banh My Chi Nga";
 const char *password = "13071982";
 
+// const char *ssid     = "quantgg";
+// const char *password = "88888888";
+
 // ──────────────────────────────────────────
 //  CẤU HÌNH MQTT
 // ──────────────────────────────────────────
@@ -76,6 +79,9 @@ const long HEARTBEAT_INTERVAL = 15000;
 bool faceVerifyActive = false;  // STM32 đang chờ kết quả face
 int  faceFailCount    = 0;      // Số lần nhận diện thất bại liên tiếp
 
+// ── Surgery State Machine ──
+bool isSurgeryOngoing = false;  // cờ trạng thái ca mổ
+
 // ──────────────────────────────────────────
 //  KẾT NỐI WiFi
 // ──────────────────────────────────────────
@@ -99,6 +105,13 @@ void connectWiFi() {
   Serial.print("[WiFi] Connected! IP: ");
   Serial.println(WiFi.localIP());
 }
+
+// ──────────────────────────────────────────
+//  FORWARD DECLARATIONS
+// ──────────────────────────────────────────
+void doUnlock(const char *user, const char *time_str);
+void doUnlockDoor2(const char *doctor);
+void publishStatus(const char *event, const char *trigger);
 
 // ──────────────────────────────────────────
 //  CALLBACK: Nhận message từ broker
@@ -138,16 +151,44 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     }
     doUnlock(user, time_str);
   }
+  else if (strcmp(action, "unlock_door2") == 0) {
+    // Mo cua 2 (phong mo): gui 'G' + ten bac si + '\n' den STM32
+    faceVerifyActive = false;
+    faceFailCount    = 0;
+    isSurgeryOngoing = true;  // Bat dau ca mo
+    doUnlockDoor2(user);
+  }
+  else if (strcmp(action, "open_door2_only") == 0) {
+    // Ca mo dang dien ra -> CHI mo cua, KHONG cap nhat ten
+    faceVerifyActive = false;
+    faceFailCount    = 0;
+    stm32Serial.write('H');  // 'H' = mo cua 2 khong cap nhat ten
+    Serial.print("[SURGERY] Door2 open-only for: ");
+    Serial.println(user);
+    publishStatus("door2_opened", user);
+  }
+  else if (strcmp(action, "complete_surgery") == 0) {
+    // Y ta bam hoan thanh ca mo -> reset man hinh STM32
+    isSurgeryOngoing = false;
+    stm32Serial.write('C');  // 'C' = Complete surgery, xoa man hinh
+    Serial.println("[SURGERY] Surgery COMPLETED -> STM32 'C'");
+    publishStatus("surgery_completed", user);
+  }
+  else if (strcmp(action, "fail_door2") == 0) {
+    // Face ID that bai -> bao STM32 hien OLED that bai
+    stm32Serial.write('N');
+    Serial.println("[FACE] Door2 fail -> STM32 'N'");
+  }
   else if (strcmp(action, "lock") == 0) {
     doLock();
   }
   else if (strcmp(action, "temp_lock") == 0) {
-    // Thất bại 3 lần -> báo STM32 khoá tạm
-    stm32Serial.write('X');
+    // That bai 3 lan -> bao STM32 khoa tam, OLED hien that bai
+    stm32Serial.write('N');
     faceVerifyActive = false;
     faceFailCount    = 0;
     publishStatus("temp_locked", "face_fail_3x");
-    Serial.println("[FACE] 3x fail -> STM32 'X' temp_lock");
+    Serial.println("[FACE] 3x fail -> STM32 'N' temp_lock");
   }
   else if (strcmp(action, "ping") == 0) {
     publishStatus("online", "pong");
@@ -204,13 +245,28 @@ void doUnlock(const char *user, const char *time_str) {
     Serial.print(" ");
   }
   Serial.println(user);
-  Serial.println("[LOCK] >>> COMMAND: UNLOCK <<<");
+  Serial.println("[LOCK] >>> COMMAND: UNLOCK CUA 1 <<<");
 
-  // ── Gửi lệnh mở khoá sang STM32 qua UART ──
+  // ── Gửi lệnh mở khoá cửa 1 sang STM32 qua UART ──
   stm32Serial.write('O');
-  Serial.println("[STM32] Sent: O (Open)");
+  Serial.println("[STM32] Sent: O (Open Door 1)");
 
   publishStatus("unlocked", user);
+}
+
+void doUnlockDoor2(const char *doctor) {
+  Serial.print("[LOCK] >>> COMMAND: UNLOCK CUA 2 (Phong Mo) - Bac si: ");
+  Serial.println(doctor);
+
+  // Gui 'G' + ten bac si + '\n' sang STM32
+  stm32Serial.write('G');
+  stm32Serial.print(doctor);
+  stm32Serial.write('\n');
+  Serial.print("[STM32] Sent: G");
+  Serial.print(doctor);
+  Serial.println("\\n");
+
+  publishStatus("unlocked_door2", doctor);
 }
 
 // ──────────────────────────────────────────

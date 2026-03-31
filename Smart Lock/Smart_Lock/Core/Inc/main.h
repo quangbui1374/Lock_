@@ -81,13 +81,28 @@ void Error_Handler(void);
 #define keypadB10_GPIO_Port GPIOB
 #define ir_sensor_Pin GPIO_PIN_11
 #define ir_sensor_GPIO_Port GPIOB
+#define sw_closeB12_Pin GPIO_PIN_12
+#define sw_closeB12_GPIO_Port GPIOB
+#define sw_openB13_Pin GPIO_PIN_13
+#define sw_openB13_GPIO_Port GPIOB
+#define IR_Up_Pin GPIO_PIN_15
+#define IR_Up_GPIO_Port GPIOB
 #define in2_Pin GPIO_PIN_9
 #define in2_GPIO_Port GPIOA
 #define in1_Pin GPIO_PIN_10
 #define in1_GPIO_Port GPIOA
+#define IR_down_Pin GPIO_PIN_15
+#define IR_down_GPIO_Port GPIOA
+#define in4_Pin GPIO_PIN_4
+#define in4_GPIO_Port GPIOB
+#define in3_Pin GPIO_PIN_5
+#define in3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define sw_closeB12_Pin GPIO_PIN_12
+#define sw_closeB12_GPIO_Port GPIOB
+#define sw_openB13_Pin GPIO_PIN_13
+#define sw_openB13_GPIO_Port GPIOB
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

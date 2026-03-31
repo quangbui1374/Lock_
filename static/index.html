@@ -79,12 +79,19 @@
     </div>
     <div class="version-tag">v1.0.0 · ESP32 Ready</div>
 
-    <!-- NÚT KHẨN CẤP TRONG SIDEBAR -->
-    <button class="btn-emergency-sidebar" id="sidebar-emergency-btn" onclick="openEmergency()">
+    <!-- KHẨN CẤP CỬA NGOÀI -->
+    <button class="btn-emergency-sidebar" id="sidebar-emergency-btn" onclick="openEmergency('door1')" style="margin-bottom:6px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
-      Mở cửa khẩn cấp
+      Khẩn cấp Cửa ngoài
+    </button>
+    <!-- KHẨN CẤP PHÒNG MỔ -->
+    <button class="btn-emergency-sidebar" id="sidebar-emergency-btn2" onclick="openEmergency('door2')" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      Khẩn cấp Phòng Mổ
     </button>
   </div>
 </aside>
@@ -103,14 +110,7 @@
     </button>
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div class="topbar-actions">
-      <button class="btn-icon" id="unlock-btn" onclick="manualUnlock()" title="Mở khóa thủ công">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-        </svg>
-      </button>
-      <!-- NÚT KHẨN CẤP TRONG TOPBAR -->
-      <button class="btn-icon btn-icon-emergency" onclick="openEmergency()" title="Mở cửa khẩn cấp">
+      <button class="btn-icon btn-icon-emergency" onclick="openEmergency('door1')" title="Khẩn cấp Cửa ngoài">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
         </svg>
@@ -144,7 +144,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value" id="total-users">0</div>
-          <div class="stat-label">Người dùng</div>
+          <div class="stat-label">Bác sĩ đã đăng ký</div>
         </div>
         <div class="stat-trend up">↑ Đã đăng ký</div>
       </div>
@@ -159,7 +159,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value" id="total-access">0</div>
-          <div class="stat-label">Lượt truy cập</div>
+          <div class="stat-label">Lượt vào phòng mổ</div>
         </div>
         <div class="stat-trend">Tổng cộng</div>
       </div>
@@ -173,7 +173,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value" id="total-granted">0</div>
-          <div class="stat-label">Được vào</div>
+          <div class="stat-label">Xác minh thành công</div>
         </div>
         <div class="stat-trend up">Granted</div>
       </div>
@@ -194,37 +194,116 @@
       </div>
     </div>
 
-    <!-- EMERGENCY BUTTON -->
-    <div class="emergency-banner">
-      <div class="emergency-banner-left">
-        <div class="emergency-icon-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="28" height="28">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
+    <!-- TRẠNG THÁI 2 CỬA -->
+    <div class="door-status-grid">
+      <!-- CỬA NGOÀI -->
+      <div class="door-status-card" id="door1-card">
+        <div class="door-status-header">
+          <div class="door-icon-wrap" id="door1-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 12h6"/>
+              <circle cx="15" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <div>
+            <div class="door-status-title">Cửa Ngoài (Lớp 1)</div>
+            <div class="door-status-desc">Mật khẩu keypad</div>
+          </div>
         </div>
-        <div>
-          <div class="emergency-banner-title">Mở cửa khẩn cấp</div>
-          <div class="emergency-banner-desc">Gửi lệnh mở khóa ngay lập tức đến ESP32 qua MQTT</div>
-        </div>
+        <div class="door-status-badge" id="door1-badge">🔒 Đang đóng</div>
+        <button class="btn btn-sm btn-emergency-door" onclick="openEmergency('door1')" id="door1-emergency-btn">
+          ⚡ Mở khẩn cấp
+        </button>
       </div>
-      <button class="btn-emergency" id="main-emergency-btn" onclick="openEmergency()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-        </svg>
-        MỞ KHẨN CẤP
-      </button>
+
+      <!-- PHÒNG MỔ -->
+      <div class="door-status-card door2" id="door2-card">
+        <div class="door-status-header">
+          <div class="door-icon-wrap door2-icon" id="door2-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="door-status-title">Phòng Mổ (Lớp 2)</div>
+            <div class="door-status-desc">Nhận diện khuôn mặt</div>
+          </div>
+        </div>
+        <div class="door-status-badge door2-badge" id="door2-badge">🔒 Đang đóng</div>
+        <div class="door2-doctor" id="door2-doctor" style="display:none;">
+          👨‍⚕️ <span id="door2-doctor-name">—</span>
+        </div>
+        <button class="btn btn-sm btn-emergency-door btn-emergency-door2" onclick="openEmergency('door2')" id="door2-emergency-btn">
+          ⚡ Mở khẩn cấp Phòng Mổ
+        </button>
+      </div>
     </div>
 
-    <!-- RECENT LOGS -->
+    <!-- SURGERY STATE MACHINE PANEL -->
+    <div class="surgery-panel" id="surgery-panel">
+      <div class="surgery-panel-inner" id="surgery-panel-inner">
+        <!-- TRẠNG THÁI: PHÒNG TRỐNG -->
+        <div class="surgery-idle" id="surgery-idle">
+          <div class="surgery-idle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <div class="surgery-idle-text">
+            <h3>Phòng Mổ — Trống</h3>
+            <p>Chưa có ca phẫu thuật nào đang diễn ra</p>
+          </div>
+        </div>
+
+        <!-- TRẠNG THÁI: ĐANG PHẪU THUẬT -->
+        <div class="surgery-active" id="surgery-active" style="display:none;">
+          <div class="surgery-active-header">
+            <div class="surgery-pulse-dot"></div>
+            <span class="surgery-live-tag">ĐANG PHẪU THUẬT</span>
+          </div>
+          <div class="surgery-info">
+            <div class="surgery-surgeon">
+              <div class="surgery-surgeon-avatar" id="surgery-avatar">B</div>
+              <div>
+                <div class="surgery-surgeon-label">Bác sĩ trưởng ca</div>
+                <div class="surgery-surgeon-name" id="surgery-surgeon-name">—</div>
+              </div>
+            </div>
+            <div class="surgery-timer">
+              <div class="surgery-timer-label">Thời gian đã trôi qua</div>
+              <div class="surgery-timer-value" id="surgery-timer">00:00:00</div>
+            </div>
+          </div>
+          <div class="surgery-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Màn hình đã khóa — Nhân viên khác vào/ra sẽ <strong>chỉ mở cửa</strong>, không đổi tên hiển thị</span>
+          </div>
+          <button class="btn-complete-surgery" id="btn-complete-surgery" onclick="completeSurgery()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Hoàn thành ca mổ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LỊCH SỬ PHÒNG MỔ GẦN ĐÂY -->
     <div class="recent-section">
       <div class="section-header">
-        <h2 class="section-title">Hoạt động gần đây</h2>
+        <h2 class="section-title">Lịch sử vào Phòng Mổ</h2>
         <button class="btn-text" onclick="switchPage('logs')">Xem tất cả →</button>
       </div>
       <div class="recent-logs" id="recent-logs">
         <div class="empty-state">
-          <div class="empty-icon">📋</div>
-          <p>Chưa có hoạt động nào</p>
+          <div class="empty-icon">🏥</div>
+          <p>Chưa có bác sĩ nào vào phòng mổ</p>
         </div>
       </div>
     </div>
@@ -234,7 +313,7 @@
   <section class="page" id="page-register">
     <div class="page-header">
       <h1 class="page-title">Đăng ký khuôn mặt</h1>
-      <p class="page-subtitle">Thêm người dùng mới vào hệ thống nhận diện</p>
+      <p class="page-subtitle">Thêm bác sĩ mới vào hệ thống nhận diện Phòng Mổ</p>
     </div>
 
     <div class="register-layout">
@@ -299,15 +378,15 @@
 
       <!-- FORM PANEL -->
       <div class="glass-card form-panel">
-        <h3>👤 Thông tin người dùng</h3>
+        <h3>👨‍⚕️ Thông tin Bác sĩ</h3>
         
         <div class="form-group">
-          <label class="form-label" for="reg-name">Họ và tên</label>
+          <label class="form-label" for="reg-name">Họ và tên bác sĩ</label>
           <input 
             class="form-input" 
             type="text" 
             id="reg-name" 
-            placeholder="Nhập tên người dùng..."
+            placeholder="Nhập tên bác sĩ..."
             autocomplete="off"
           />
         </div>
@@ -359,8 +438,8 @@
   <!-- ==================== PAGE: USERS ==================== -->
   <section class="page" id="page-users">
     <div class="page-header">
-      <h1 class="page-title">Danh sách người dùng</h1>
-      <p class="page-subtitle">Quản lý các tài khoản đã đăng ký trong hệ thống</p>
+      <h1 class="page-title">Danh sách Bác sĩ</h1>
+      <p class="page-subtitle">Quản lý các bác sĩ đã đăng ký trong hệ thống Phòng Mổ</p>
     </div>
 
     <div class="toolbar">
@@ -369,7 +448,7 @@
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input type="text" id="user-search" placeholder="Tìm kiếm người dùng..." oninput="filterUsers()" />
+        <input type="text" id="user-search" placeholder="Tìm kiếm bác sĩ..." oninput="filterUsers()" />
       </div>
       <button class="btn btn-sm btn-outline" onclick="loadUsers()">
         🔄 Làm mới
@@ -379,7 +458,7 @@
     <div class="users-grid" id="users-grid">
       <div class="empty-state">
         <div class="empty-icon">👥</div>
-        <p>Chưa có người dùng nào</p>
+        <p>Chưa có bác sĩ nào</p>
         <button class="btn btn-sm btn-primary" onclick="switchPage('register')">+ Đăng ký ngay</button>
       </div>
     </div>
@@ -388,21 +467,18 @@
   <!-- ==================== PAGE: LOGS ==================== -->
   <section class="page" id="page-logs">
     <div class="page-header">
-      <h1 class="page-title">Lịch sử truy cập</h1>
-      <p class="page-subtitle">Nhật ký ra vào theo thời gian thực</p>
+      <h1 class="page-title">Lịch sử vào Phòng Mổ</h1>
+      <p class="page-subtitle">Nhật ký bác sĩ vào phòng mổ theo thời gian thực</p>
     </div>
 
     <div class="toolbar">
       <div class="filter-group">
         <button class="filter-btn active" data-filter="all" onclick="filterLogs('all', this)">Tất cả</button>
         <button class="filter-btn" data-filter="granted" onclick="filterLogs('granted', this)">
-          <span class="dot green"></span>Granted
+          <span class="dot green"></span>Thành công
         </button>
         <button class="filter-btn" data-filter="denied" onclick="filterLogs('denied', this)">
-          <span class="dot red"></span>Denied
-        </button>
-        <button class="filter-btn" data-filter="register" onclick="filterLogs('register', this)">
-          <span class="dot blue"></span>Đăng ký
+          <span class="dot red"></span>Từ chối
         </button>
       </div>
       <div style="display:flex;gap:8px;">
@@ -416,18 +492,17 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Người dùng</th>
-            <th>Trạng thái</th>
-            <th>Loại</th>
+            <th>Bác sĩ</th>
+            <th>Kết quả</th>
             <th>Thời gian</th>
           </tr>
         </thead>
         <tbody id="logs-tbody">
           <tr>
-            <td colspan="5" class="empty-row">
+            <td colspan="4" class="empty-row">
               <div class="empty-state">
-                <div class="empty-icon">📋</div>
-                <p>Chưa có dữ liệu log</p>
+                <div class="empty-icon">🏥</div>
+                <p>Chưa có dữ liệu</p>
               </div>
             </td>
           </tr>
@@ -437,6 +512,7 @@
   </section>
 
 </main>
+
 <!-- ===== EMERGENCY MODAL ===== -->
 <div class="modal-overlay" id="emergency-modal">
   <div class="modal modal-emergency">
@@ -447,12 +523,12 @@
         </svg>
       </div>
       <div>
-        <h3>⚠️ Mở cửa khẩn cấp</h3>
-        <p class="emergency-subtitle">Thao tác này sẽ mở khóa NGAY LẬP TỨC</p>
+        <h3 id="emergency-modal-title">⚠️ Mở cửa khẩn cấp</h3>
+        <p class="emergency-subtitle" id="emergency-modal-desc">Thao tác này sẽ mở khóa NGAY LẬP TỨC</p>
       </div>
     </div>
     <div class="emergency-warning">
-      <span>🔴</span> Lệnh sẽ gửi qua MQTT đến ESP32 và mở relay trong <strong>3 giây</strong>.
+      <span>🔴</span> Lệnh sẽ gửi qua MQTT đến ESP32 và mở relay ngay lập tức.
       Toàn bộ hoạt động được ghi lại vào log.
     </div>
     <div class="emergency-countdown-wrap" id="emergency-countdown-wrap">
@@ -479,24 +555,11 @@
 
 <div class="toast-container" id="toast-container"></div>
 
-<!-- ===== UNLOCK MODAL ===== -->
-<div class="modal-overlay" id="unlock-modal">
-  <div class="modal">
-    <div class="modal-icon unlock-icon">🔓</div>
-    <h3>Mở khóa thủ công</h3>
-    <p>Gửi lệnh mở khóa đến STM32?</p>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="confirmUnlock()">Xác nhận mở khóa</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===== DELETE USER MODAL ===== -->
 <div class="modal-overlay" id="delete-modal">
   <div class="modal">
     <div class="modal-icon danger-icon">⚠️</div>
-    <h3>Xóa người dùng</h3>
+    <h3>Xóa bác sĩ</h3>
     <p>Bạn có chắc muốn xóa <strong id="delete-name"></strong>?<br>Hành động này không thể hoàn tác.</p>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeDeleteModal()">Hủy</button>

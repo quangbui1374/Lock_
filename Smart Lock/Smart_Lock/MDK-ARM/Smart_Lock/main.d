@@ -32,4 +32,5 @@ smart_lock\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 smart_lock\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 smart_lock\main.o: ../../lib/lcd_i2c_quang.h
 smart_lock\main.o: ../../lib/keypad_3x4_quang.h
-smart_lock\main.o: ../../lib/MFRC522.h
+smart_lock\main.o: ../../lib/fonts.h
+smart_lock\main.o: ../../lib/ssd1306.h

@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../../../LibSTM32/keypad_3x4_quang;../../../LibSTM32/lcd_i2c_quang;../../../LibSTM32/RFID-RC522;../../lib</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../../lib</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -404,9 +404,14 @@
               <FilePath>..\..\lib\lcd_i2c_quang.c</FilePath>
             </File>
             <File>
-              <FileName>MFRC522.c</FileName>
+              <FileName>fonts.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\lib\MFRC522.c</FilePath>
+              <FilePath>F:\LIB\fonts.c</FilePath>
+            </File>
+            <File>
+              <FileName>ssd1306.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>F:\LIB\ssd1306.c</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
