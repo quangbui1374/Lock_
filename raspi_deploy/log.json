@@ -1,5 +1,448 @@
 [
     {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-05 18:06:35",
+        "timestamp": 1775387195.937303
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-05 18:06:30",
+        "timestamp": 1775387190.8311431
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-05 18:06:25",
+        "timestamp": 1775387185.7269568
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:25:26",
+        "timestamp": 1775064326.7299986
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:25:08",
+        "timestamp": 1775064308.2468398
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:25:02",
+        "timestamp": 1775064302.339901
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:24:57",
+        "timestamp": 1775064297.199927
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:24:52",
+        "timestamp": 1775064292.0596776
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:24:31",
+        "timestamp": 1775064271.3087773
+    },
+    {
+        "user": "quang",
+        "status": "surgery_start",
+        "type": "surgery",
+        "time": "2026-04-02 00:16:00",
+        "timestamp": 1775063760.4486911
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:16:00",
+        "timestamp": 1775063760.2224035
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:15:57",
+        "timestamp": 1775063757.0236392
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:15:51",
+        "timestamp": 1775063751.994877
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:15:46",
+        "timestamp": 1775063746.9950871
+    },
+    {
+        "user": "phong",
+        "status": "registered",
+        "type": "register",
+        "time": "2026-04-02 00:15:16",
+        "timestamp": 1775063716.8563464
+    },
+    {
+        "user": "quang",
+        "status": "registered",
+        "type": "register",
+        "time": "2026-04-02 00:14:55",
+        "timestamp": 1775063695.132752
+    },
+    {
+        "user": "phong",
+        "status": "surgery_complete",
+        "type": "surgery",
+        "elapsed_sec": 134,
+        "time": "2026-04-02 00:13:18",
+        "timestamp": 1775063598.8710325
+    },
+    {
+        "user": "phong",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:11:33",
+        "timestamp": 1775063493.318187
+    },
+    {
+        "user": "phong",
+        "status": "surgery_start",
+        "type": "surgery",
+        "time": "2026-04-02 00:11:03",
+        "timestamp": 1775063463.8708713
+    },
+    {
+        "user": "phong",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:11:03",
+        "timestamp": 1775063463.6305668
+    },
+    {
+        "user": "phong",
+        "status": "surgery_complete",
+        "type": "surgery",
+        "elapsed_sec": 32,
+        "time": "2026-04-02 00:10:59",
+        "timestamp": 1775063459.152028
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:50",
+        "timestamp": 1775063450.909617
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:10:46",
+        "timestamp": 1775063446.7807133
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:45",
+        "timestamp": 1775063445.6003067
+    },
+    {
+        "user": "quang",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:10:41",
+        "timestamp": 1775063441.6351383
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:39",
+        "timestamp": 1775063439.9427247
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:34",
+        "timestamp": 1775063434.9268053
+    },
+    {
+        "user": "phong",
+        "status": "surgery_start",
+        "type": "surgery",
+        "time": "2026-04-02 00:10:26",
+        "timestamp": 1775063426.2282944
+    },
+    {
+        "user": "phong",
+        "status": "granted",
+        "type": "access",
+        "time": "2026-04-02 00:10:25",
+        "timestamp": 1775063425.999937
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:25",
+        "timestamp": 1775063425.3597882
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:20",
+        "timestamp": 1775063420.3463798
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-02 00:10:15",
+        "timestamp": 1775063415.2668915
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:57:36",
+        "timestamp": 1775062656.6088517
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:57:31",
+        "timestamp": 1775062651.4464977
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:58",
+        "timestamp": 1775062618.8195007
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:53",
+        "timestamp": 1775062613.6548035
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:48",
+        "timestamp": 1775062608.3728247
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:43",
+        "timestamp": 1775062603.1881154
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:38",
+        "timestamp": 1775062598.0317402
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:32",
+        "timestamp": 1775062592.919426
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:56:27",
+        "timestamp": 1775062587.584046
+    },
+    {
+        "user": "quang",
+        "status": "registered",
+        "type": "register",
+        "time": "2026-04-01 23:55:37",
+        "timestamp": 1775062537.961321
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:43",
+        "timestamp": 1775062243.6622086
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:38",
+        "timestamp": 1775062238.311025
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:33",
+        "timestamp": 1775062233.1126406
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:28",
+        "timestamp": 1775062228.0549371
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:22",
+        "timestamp": 1775062222.6614316
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:17",
+        "timestamp": 1775062217.5239525
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:50:12",
+        "timestamp": 1775062212.095736
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:46:29",
+        "timestamp": 1775061989.0752096
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:46:23",
+        "timestamp": 1775061983.6968842
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:46:18",
+        "timestamp": 1775061978.5338728
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:45:03",
+        "timestamp": 1775061903.2322304
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:57",
+        "timestamp": 1775061897.7426891
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:52",
+        "timestamp": 1775061892.2521927
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:47",
+        "timestamp": 1775061887.0114286
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:41",
+        "timestamp": 1775061881.5244927
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:36",
+        "timestamp": 1775061876.4743414
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:31",
+        "timestamp": 1775061871.4517574
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:26",
+        "timestamp": 1775061866.048433
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:20",
+        "timestamp": 1775061860.7747219
+    },
+    {
+        "user": "Unknown",
+        "status": "denied",
+        "type": "access",
+        "time": "2026-04-01 23:44:15",
+        "timestamp": 1775061855.7518444
+    },
+    {
+        "user": "quang",
+        "status": "registered",
+        "type": "register",
+        "time": "2026-04-01 23:43:32",
+        "timestamp": 1775061812.0509033
+    },
+    {
         "user": "quang",
         "status": "surgery_complete",
         "type": "surgery",

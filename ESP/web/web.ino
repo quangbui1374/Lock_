@@ -21,29 +21,30 @@
  *   {"event":"online"}
  */
 
-#include <WiFi.h>
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <PubSubClient.h>
+#include <WiFi.h>
+
 
 // ──────────────────────────────────────────
 //  CẤU HÌNH WiFi
 // ──────────────────────────────────────────
-const char *ssid     = "Xoi Banh My Chi Nga";
-const char *password = "13071982";
+// const char *ssid     = "Xoi Banh My Chi Nga";
+// const char *password = "13071982";
 
-// const char *ssid     = "quantgg";
-// const char *password = "88888888";
+const char *ssid = "quang";
+const char *password = "yyyyyyyy";
 
 // ──────────────────────────────────────────
 //  CẤU HÌNH MQTT
 // ──────────────────────────────────────────
 const char *mqtt_server = "broker.hivemq.com";
-const int   mqtt_port   = 1883;
+const int mqtt_port = 1883;
 const char *mqtt_prefix = "smartlock/quang_1307";
 
 // Topics
-const char *TOPIC_COMMAND   = "smartlock/quang_1307/command";
-const char *TOPIC_STATUS    = "smartlock/quang_1307/status";
+const char *TOPIC_COMMAND = "smartlock/quang_1307/command";
+const char *TOPIC_STATUS = "smartlock/quang_1307/status";
 const char *TOPIC_HEARTBEAT = "smartlock/quang_1307/heartbeat";
 
 // Client ID phải unique trên broker public
@@ -52,7 +53,8 @@ const char *CLIENT_ID = "esp32-smartlock-quang1307";
 // ──────────────────────────────────────────
 //  PHẦN CỨNG
 // ──────────────────────────────────────────
-// Cửa và thời gian chờ được thực hiện bên STM32. ESP32 không còn xử lý Relay/Timer đóng dóng.
+// Cửa và thời gian chờ được thực hiện bên STM32. ESP32 không còn xử lý
+// Relay/Timer đóng dóng.
 
 // ──────────────────────────────────────────
 //  UART GIAO TIẾP VỚI STM32
@@ -61,26 +63,26 @@ const char *CLIENT_ID = "esp32-smartlock-quang1307";
 //  ESP32 RX2 (GPIO16) ← STM32 PB6 (USART1 TX)
 //  Nối chung GND!
 // ──────────────────────────────────────────
-#define STM32_RX_PIN  16   // ESP32 nhận từ STM32 PB6
-#define STM32_TX_PIN  17   // ESP32 gửi  đến STM32 PB7
-HardwareSerial stm32Serial(2);  // UART2 của ESP32
+#define STM32_RX_PIN 16        // ESP32 nhận từ STM32 PB6
+#define STM32_TX_PIN 17        // ESP32 gửi  đến STM32 PB7
+HardwareSerial stm32Serial(2); // UART2 của ESP32
 
 // ──────────────────────────────────────────
 //  BIẾN TOÀN CỤC
 // ──────────────────────────────────────────
-WiFiClient   espClient;
+WiFiClient espClient;
 PubSubClient mqtt(espClient);
 
-bool     isLocked        = true;
+bool isLocked = true;
 unsigned long lastHeartbeat = 0;
 const long HEARTBEAT_INTERVAL = 15000;
 
 // ── Face ID Layer 2 ──
-bool faceVerifyActive = false;  // STM32 đang chờ kết quả face
-int  faceFailCount    = 0;      // Số lần nhận diện thất bại liên tiếp
+bool faceVerifyActive = false; // STM32 đang chờ kết quả face
+int faceFailCount = 0;         // Số lần nhận diện thất bại liên tiếp
 
 // ── Surgery State Machine ──
-bool isSurgeryOngoing = false;  // cờ trạng thái ca mổ
+bool isSurgeryOngoing = false; // cờ trạng thái ca mổ
 
 // ──────────────────────────────────────────
 //  KẾT NỐI WiFi
@@ -137,8 +139,9 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
   }
 
   const char *action = doc["action"];
-  if (!action) return;
-  
+  if (!action)
+    return;
+
   const char *user = doc["user"] | "Unknown";
   const char *time_str = doc["time"] | "";
 
@@ -146,51 +149,44 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
   if (strcmp(action, "unlock") == 0) {
     if (faceVerifyActive) {
       faceVerifyActive = false;
-      faceFailCount    = 0;
+      faceFailCount = 0;
       Serial.println("[FACE] Layer2 OK -> Forwarding Unlock to STM32");
     }
     doUnlock(user, time_str);
-  }
-  else if (strcmp(action, "unlock_door2") == 0) {
+  } else if (strcmp(action, "unlock_door2") == 0) {
     // Mo cua 2 (phong mo): gui 'G' + ten bac si + '\n' den STM32
     faceVerifyActive = false;
-    faceFailCount    = 0;
-    isSurgeryOngoing = true;  // Bat dau ca mo
+    faceFailCount = 0;
+    isSurgeryOngoing = true; // Bat dau ca mo
     doUnlockDoor2(user);
-  }
-  else if (strcmp(action, "open_door2_only") == 0) {
+  } else if (strcmp(action, "open_door2_only") == 0) {
     // Ca mo dang dien ra -> CHI mo cua, KHONG cap nhat ten
     faceVerifyActive = false;
-    faceFailCount    = 0;
-    stm32Serial.write('H');  // 'H' = mo cua 2 khong cap nhat ten
+    faceFailCount = 0;
+    stm32Serial.write('H'); // 'H' = mo cua 2 khong cap nhat ten
     Serial.print("[SURGERY] Door2 open-only for: ");
     Serial.println(user);
     publishStatus("door2_opened", user);
-  }
-  else if (strcmp(action, "complete_surgery") == 0) {
+  } else if (strcmp(action, "complete_surgery") == 0) {
     // Y ta bam hoan thanh ca mo -> reset man hinh STM32
     isSurgeryOngoing = false;
-    stm32Serial.write('C');  // 'C' = Complete surgery, xoa man hinh
+    stm32Serial.write('C'); // 'C' = Complete surgery, xoa man hinh
     Serial.println("[SURGERY] Surgery COMPLETED -> STM32 'C'");
     publishStatus("surgery_completed", user);
-  }
-  else if (strcmp(action, "fail_door2") == 0) {
+  } else if (strcmp(action, "fail_door2") == 0) {
     // Face ID that bai -> bao STM32 hien OLED that bai
     stm32Serial.write('N');
     Serial.println("[FACE] Door2 fail -> STM32 'N'");
-  }
-  else if (strcmp(action, "lock") == 0) {
+  } else if (strcmp(action, "lock") == 0) {
     doLock();
-  }
-  else if (strcmp(action, "temp_lock") == 0) {
+  } else if (strcmp(action, "temp_lock") == 0) {
     // That bai 3 lan -> bao STM32 khoa tam, OLED hien that bai
     stm32Serial.write('N');
     faceVerifyActive = false;
-    faceFailCount    = 0;
+    faceFailCount = 0;
     publishStatus("temp_locked", "face_fail_3x");
     Serial.println("[FACE] 3x fail -> STM32 'N' temp_lock");
-  }
-  else if (strcmp(action, "ping") == 0) {
+  } else if (strcmp(action, "ping") == 0) {
     publishStatus("online", "pong");
   }
 }
@@ -212,8 +208,7 @@ void connectMQTT() {
 
       // Thông báo online
       publishStatus("online", "boot");
-    }
-    else {
+    } else {
       Serial.print(" Failed, rc=");
       Serial.print(mqtt.state());
       Serial.println(" – retry in 3s");
@@ -227,17 +222,17 @@ void connectMQTT() {
 // ──────────────────────────────────────────
 void publishStatus(const char *event, const char *trigger) {
   StaticJsonDocument<128> doc;
-  doc["event"]   = event;
+  doc["event"] = event;
   doc["trigger"] = trigger;
 
   char buf[128];
   serializeJson(doc, buf);
 
-  mqtt.publish(TOPIC_STATUS, buf, true);  // retain = true
+  mqtt.publish(TOPIC_STATUS, buf,
+               false); // retain = false (tránh kẹt trạng thái cũ)
   Serial.print("[MQTT] Published status: ");
   Serial.println(buf);
 }
-
 
 void doUnlock(const char *user, const char *time_str) {
   if (strlen(time_str) > 0) {
@@ -274,8 +269,9 @@ void doUnlockDoor2(const char *doctor) {
 // ──────────────────────────────────────────
 void doLock() {
   Serial.println("[LOCK] >>> COMMAND: LOCK <<<");
-  
-  // STM32 quản lý toàn bộ quá trình đóng, ESP32 chỉ làm nhiệm vụ đồng bộ trạng thái.
+
+  // STM32 quản lý toàn bộ quá trình đóng, ESP32 chỉ làm nhiệm vụ đồng bộ trạng
+  // thái.
   publishStatus("locked", "auto");
 }
 
@@ -341,20 +337,17 @@ void loop() {
       faceFailCount = 0;
       publishStatus("request_face", "stm32");
       Serial.println("[STM32] Layer 1 OK -> Requesting Face ID...");
-    }
-    else if (c == 'U') {
+    } else if (c == 'U') {
       // STM32 báo đã mở cửa
-      isLocked   = false;
+      isLocked = false;
       publishStatus("unlocked", "stm32");
       Serial.println("[STM32] Door opened by STM32");
-    }
-    else if (c == 'L') {
+    } else if (c == 'L') {
       // STM32 báo đã khoá lại
       isLocked = true;
       publishStatus("locked", "stm32");
       Serial.println("[STM32] Door locked by STM32");
-    }
-    else if (c == 'A') {
+    } else if (c == 'A') {
       // STM32 alive (ping response)
       Serial.println("[STM32] Alive / Online");
     }

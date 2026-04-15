@@ -27,6 +27,14 @@ mqtt_client_ = None    # instance mqtt
 mqtt_connected = False # trạng thái kết nối MQTT của Flask
 waiting_for_face = False
 face_fail_count = 0
+_face_timeout_timer = None
+
+def _reset_face_wait():
+    global waiting_for_face, face_fail_count
+    if waiting_for_face:
+        waiting_for_face = False
+        face_fail_count = 0
+        print("[APP] Timed out: Tuyet phoi - Huy trang thai cho quet khuon mat sau 15 giay.")
 
 # ── SURGERY STATE MACHINE ──
 surgery_ongoing   = False    # cờ trạng thái ca mổ
@@ -65,9 +73,13 @@ def on_message(client, userdata, msg):
             esp_online = True
 
             if event == "request_face":
-                global waiting_for_face, face_fail_count
+                global waiting_for_face, face_fail_count, _face_timeout_timer
                 waiting_for_face = True
                 face_fail_count = 0
+                if _face_timeout_timer:
+                    _face_timeout_timer.cancel()
+                _face_timeout_timer = threading.Timer(15.0, _reset_face_wait)
+                _face_timeout_timer.start()
                 print("[APP] Received Face ID Request from STM32/ESP32!")
 
             if event in ("unlocked", "locked"):
@@ -304,9 +316,9 @@ def recognize():
 
                 # ── SURGERY STATE MACHINE ──
                 if surgery_ongoing:
-                    # Ca mổ đang diễn ra → CHỈ mở cửa, KHÔNG cập nhật tên
+                    # Ca mổ đang diễn ra → Gửi lệnh để chỉ mở cửa, giữ nguyên tên trên OLED
                     mqtt_publish_command("open_door2_only", user)
-                    print(f"[SURGERY] Surgery ongoing! {user} enters → door only (no display update)")
+                    print(f"[SURGERY] Surgery ongoing! {user} enters → open door without changing doctor name")
                 else:
                     # Chưa có ca mổ → Bác sĩ trưởng check-in
                     mqtt_publish_command("unlock_door2", user)
@@ -370,6 +382,19 @@ def get_status():
         return jsonify({"waiting_for_face": waiting_for_face})
     except:
         return jsonify({"waiting_for_face": False})
+
+# ===== TEST: Kích hoạt Layer 2 thủ công (không cần phần cứng) =====
+@app.route("/test_face", methods=["POST"])
+def test_face():
+    global waiting_for_face, face_fail_count, _face_timeout_timer
+    waiting_for_face = True
+    face_fail_count = 0
+    if _face_timeout_timer:
+        _face_timeout_timer.cancel()
+    _face_timeout_timer = threading.Timer(15.0, _reset_face_wait)
+    _face_timeout_timer.start()
+    print("[TEST] Đã kích hoạt Layer 2 (quét mặt) thủ công!")
+    return jsonify({"status": "ok", "message": "Layer 2 activated! Camera đang quét..."})
 
 # ===== SURGERY STATE MACHINE ENDPOINTS =====
 @app.route("/surgery/status", methods=["GET"])
