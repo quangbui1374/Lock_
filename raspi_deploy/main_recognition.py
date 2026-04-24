@@ -19,20 +19,73 @@ face_cascade = cv2.CascadeClassifier(
 recognizer = cv2.face.LBPHFaceRecognizer_create()
 
 # ================== SETTINGS ==================
-CONFIDENCE_THRESHOLD = 80   # Duoi nguong nay moi chap nhan (LBPH: so cang nho cang giong)
+CONFIDENCE_THRESHOLD = 55   # Giam tu 80 xuong 55 (cang thap cang chat che)
 FRAME_SKIP = 3              # Xu ly moi N frame (giam tai cho Pi)
 RESIZE_WIDTH = 480
-CONFIRM_FRAMES = 3          # Can N frame lien tiep cung ket qua
+CONFIRM_FRAMES = 5          # Phai dung mat dien tiep 5 frame moi mo cua (chong nhan dien nang quay/nhay)
 COOLDOWN = 5                # Giay giua 2 lan gui cung 1 nguoi
 FACE_SIZE = (200, 200)      # Kich thuoc chuan hoa khuon mat
+
 
 # ================== DATABASE ==================
 label_map = {}        # {0: "Dr. Quang", 1: "Dr. An", ...}
 last_db_mtime = 0
 is_trained = False
 
+def _decode_and_extract_face(b64_str):
+    """Giai ma 1 anh base64, phat hien mat, tra ve face ROI (grayscale, resized) hoac None."""
+    try:
+        if "," in b64_str:
+            b64_str = b64_str.split(",")[-1]
+        img_data = base64.b64decode(b64_str)
+        nparr = np.frombuffer(img_data, np.uint8)
+        img_cv2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img_cv2 is None:
+            return None
+
+        gray = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2GRAY)
+
+        detected = face_cascade.detectMultiScale(
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60)
+        )
+
+        if len(detected) == 0:
+            return None
+
+        # Lay mat lon nhat
+        (x, y, w, h) = max(detected, key=lambda r: r[2] * r[3])
+        face_roi = gray[y:y+h, x:x+w]
+        face_resized = cv2.resize(face_roi, FACE_SIZE)
+        return face_resized
+    except Exception:
+        return None
+
+
+def _augment_face(face_resized):
+    """Tao bien the tu 1 khuon mat de tang do chinh xac. Tra ve list cac anh."""
+    augmented = [face_resized]
+
+    # Lat ngang
+    augmented.append(cv2.flip(face_resized, 1))
+
+    # Tang do sang
+    augmented.append(cv2.convertScaleAbs(face_resized, alpha=1.2, beta=20))
+
+    # Giam do sang
+    augmented.append(cv2.convertScaleAbs(face_resized, alpha=0.8, beta=-20))
+
+    # Lam mo nhe (mo phong camera chat luong thap)
+    augmented.append(cv2.GaussianBlur(face_resized, (3, 3), 0))
+
+    # Can bang histogram (tang tuong phan)
+    augmented.append(cv2.equalizeHist(face_resized))
+
+    return augmented
+
+
 def load_database():
-    """Doc db.json, crop mat, train LBPH recognizer."""
+    """Doc db.json, crop mat tu NHIEU anh, train LBPH recognizer."""
     global label_map, last_db_mtime, is_trained
 
     if not os.path.exists(DB_FILE):
@@ -54,79 +107,50 @@ def load_database():
         label_id = 0
 
         for name, info in raw_db.items():
-            if not isinstance(info, dict) or "full_image" not in info:
-                continue
-            if not info["full_image"]:
+            if not isinstance(info, dict):
                 continue
 
-            try:
-                # Giai ma anh base64
-                b64_str = info["full_image"]
-                if "," in b64_str:
-                    b64_str = b64_str.split(",")[-1]
-                img_data = base64.b64decode(b64_str)
-                nparr = np.frombuffer(img_data, np.uint8)
-                img_cv2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            # Lay danh sach anh: uu tien face_images (multi), fallback full_image (single)
+            image_list = info.get("face_images", [])
+            if not image_list:
+                single = info.get("full_image", "")
+                if single:
+                    image_list = [single]
 
-                if img_cv2 is None:
-                    print(f"[DB] Anh trong: {name}")
+            if not image_list:
+                continue
+
+            person_face_count = 0
+
+            for img_idx, b64_str in enumerate(image_list):
+                if not b64_str:
                     continue
 
-                # Chuyen sang grayscale
-                gray = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2GRAY)
-
-                # Phat hien mat trong anh dang ky
-                detected = face_cascade.detectMultiScale(
-                    gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60)
-                )
-
-                if len(detected) == 0:
-                    print(f"[DB] Khong tim thay mat: {name}")
+                face_resized = _decode_and_extract_face(b64_str)
+                if face_resized is None:
+                    print(f"[DB] Anh {img_idx+1}: Khong tim thay mat - {name}")
                     continue
 
-                # Lay mat lon nhat
-                (x, y, w, h) = max(detected, key=lambda r: r[2] * r[3])
-                face_roi = gray[y:y+h, x:x+w]
-                face_resized = cv2.resize(face_roi, FACE_SIZE)
+                # Augment moi anh goc
+                variants = _augment_face(face_resized)
+                for v in variants:
+                    faces.append(v)
+                    labels.append(label_id)
+                    person_face_count += 1
 
-                # Them vao tap huan luyen
-                # Tao nhieu bien the de tang do chinh xac
-                faces.append(face_resized)
-                labels.append(label_id)
-
-                # Tang cuong du lieu (Data Augmentation)
-                # Lat ngang
-                faces.append(cv2.flip(face_resized, 1))
-                labels.append(label_id)
-
-                # Tang do sang
-                bright = cv2.convertScaleAbs(face_resized, alpha=1.2, beta=20)
-                faces.append(bright)
-                labels.append(label_id)
-
-                # Giam do sang
-                dark = cv2.convertScaleAbs(face_resized, alpha=0.8, beta=-20)
-                faces.append(dark)
-                labels.append(label_id)
-
-                # Lam mo nhe (mo phong camera chat luong thap)
-                blurred = cv2.GaussianBlur(face_resized, (3, 3), 0)
-                faces.append(blurred)
-                labels.append(label_id)
-
+            if person_face_count > 0:
                 new_label_map[label_id] = name
                 label_id += 1
-                print(f"[DB] Da hoc mat: {name} (5 mau)")
-
-            except Exception as e:
-                print(f"[DB] Loi xu ly {name}: {e}")
+                print(f"[DB] Da hoc mat: {name} ({len(image_list)} anh goc -> {person_face_count} mau)")
+            else:
+                print(f"[DB] Khong co mat hop le: {name}")
 
         if len(faces) > 0:
             recognizer.train(faces, np.array(labels))
             label_map = new_label_map
             is_trained = True
             last_db_mtime = current_mtime
-            print(f"[DB] Hoan tat! Da hoc {len(label_map)} nguoi dung ({len(faces)} mau)")
+            print(f"[DB] Hoan tat! Da hoc {len(label_map)} nguoi dung ({len(faces)} mau tong cong)")
         else:
             print("[DB] Khong co khuon mat nao de hoc!")
             is_trained = False

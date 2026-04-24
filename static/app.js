@@ -4,7 +4,7 @@ const API_BASE = "";  // empty = same origin (Flask serves frontend)
 let allLogs = [];
 let allUsers = [];
 let currentFilter = "all";
-let capturedImage = null;
+let capturedImages = [];     // ★ Mảng chứa nhiều ảnh (thay vì 1)
 let stream = null;
 let currentDeleteTarget = null;
 let emergencyTarget = "door1"; // which door the emergency is for
@@ -576,80 +576,135 @@ async function clearLogs() {
   }
 }
 
-// ===== CAMERA =====
-async function startCamera() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: "user" },
-      audio: false
-    });
+// ===== PI CAMERA — MJPEG Stream (không cần polling) =====
 
-    const video = document.getElementById("webcam");
-    video.srcObject = stream;
-    video.style.display = "block";
-    document.getElementById("camera-placeholder").style.display = "none";
-    document.getElementById("face-overlay").style.display = "block";
-    document.getElementById("camera-actions").style.display = "block";
-    document.getElementById("start-cam-btn").style.display = "none";
-    document.getElementById("stop-cam-btn").style.display = "inline-flex";
+function startPiCamera() {
+  const preview = document.getElementById("pi-camera-preview");
+  const placeholder = document.getElementById("camera-placeholder");
 
-    showToast("success", "📷 Camera đã bật");
-  } catch (err) {
-    showToast("error", "❌ Không thể truy cập camera: " + err.message);
-  }
+  // ★ Dùng MJPEG stream — browser tự cập nhật liên tục
+  preview.src = "/api/stream";
+  preview.style.display = "block";
+  placeholder.style.display = "none";
+  document.getElementById("face-overlay").style.display = "block";
+  document.getElementById("camera-actions").style.display = "block";
+  document.getElementById("start-cam-btn").style.display = "none";
+  document.getElementById("stop-cam-btn").style.display = "inline-flex";
+
+  preview.onerror = function() {
+    preview.style.display = "none";
+    placeholder.style.display = "flex";
+    placeholder.querySelector("p").textContent = "⚠️ Camera chưa sẵn sàng. Hãy chạy recog.py!";
+    stopPiCamera();
+    showToast("warning", "⚠️ Camera không phản hồi. Kiểm tra <b>recog.py</b>!", 5000);
+  };
+
+  showToast("success", "📷 Camera Pi đang stream!");
 }
 
-function stopCamera() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-  document.getElementById("webcam").style.display = "none";
+function stopPiCamera() {
+  const preview = document.getElementById("pi-camera-preview");
+  preview.src = "";  // Ngắt stream
+  preview.style.display = "none";
   document.getElementById("camera-placeholder").style.display = "flex";
   document.getElementById("face-overlay").style.display = "none";
   document.getElementById("camera-actions").style.display = "none";
   document.getElementById("start-cam-btn").style.display = "inline-flex";
   document.getElementById("stop-cam-btn").style.display = "none";
 
-  showToast("info", "📷 Camera đã tắt");
+  showToast("info", "📷 Đã tắt camera");
 }
 
-function capturePhoto() {
-  const video = document.getElementById("webcam");
-  const canvas = document.getElementById("snapshot-canvas");
-  const ctx = canvas.getContext("2d");
+// ★ Chụp ảnh từ Camera Pi (gọi API server-side)
+async function capturePiPhoto() {
+  showToast("info", "📸 Đang chụp...");
+  try {
+    const res = await fetch("/api/capture");
+    const data = await res.json();
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0);
+    if (data.status === "ok" && data.image) {
+      capturedImages.push(data.image);
+      updatePhotoPreview();
 
-  // Get base64
-  capturedImage = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+      // Update step
+      document.getElementById("step-photo").classList.add("done");
+      document.getElementById("step-photo").querySelector(".step-icon").textContent = "✓";
 
-  // Show preview
-  document.getElementById("snapshot-img").src = canvas.toDataURL("image/jpeg", 0.85);
-  document.getElementById("snapshot-preview").style.display = "block";
+      // Flash effect
+      const overlay = document.getElementById("face-overlay");
+      overlay.style.background = "rgba(255,255,255,0.3)";
+      setTimeout(() => { overlay.style.background = "none"; }, 200);
 
-  // Flash effect
-  const overlay = document.getElementById("face-overlay");
-  overlay.style.background = "rgba(255,255,255,0.3)";
-  setTimeout(() => { overlay.style.background = "none"; }, 200);
+      showToast("success", `📸 Chụp thành công! (${capturedImages.length} ảnh)`);
+    } else {
+      showToast("error", "❌ " + (data.message || "Không chụp được ảnh"));
+    }
+  } catch (err) {
+    showToast("error", "❌ Lỗi kết nối: " + err.message);
+  }
+}
 
-  // Update step
-  document.getElementById("step-photo").classList.add("done");
-  document.getElementById("step-photo").querySelector(".step-icon").textContent = "✓";
+// ★ Upload ảnh từ file (fallback)
+function handleFileUpload(input) {
+  const files = input.files;
+  if (!files || files.length === 0) return;
 
-  showToast("success", "📸 Chụp ảnh thành công!");
+  let processed = 0;
+  const total = files.length;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.type.startsWith("image/")) continue;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result.split(",")[1];
+      capturedImages.push(base64);
+      processed++;
+
+      if (processed >= total) {
+        updatePhotoPreview();
+        document.getElementById("step-photo").classList.add("done");
+        document.getElementById("step-photo").querySelector(".step-icon").textContent = "✓";
+        showToast("success", `📸 Đã tải ${capturedImages.length} ảnh thành công!`);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.value = "";
+}
+
+function updatePhotoPreview() {
+  const preview = document.getElementById("snapshot-preview");
+  if (capturedImages.length === 0) {
+    preview.style.display = "none";
+    return;
+  }
+
+  preview.style.display = "block";
+
+  const lastImg = capturedImages[capturedImages.length - 1];
+  document.getElementById("snapshot-img").src = "data:image/jpeg;base64," + lastImg;
+  
+  const countEl = document.getElementById("photo-count");
+  if (countEl) {
+    countEl.textContent = `${capturedImages.length} ảnh đã chụp/tải`;
+    countEl.style.display = "block";
+  }
 }
 
 function retakePhoto() {
-  capturedImage = null;
+  capturedImages = [];
   document.getElementById("snapshot-preview").style.display = "none";
   document.getElementById("step-photo").classList.remove("done");
   document.getElementById("step-photo").querySelector(".step-icon").textContent = "2";
+  const countEl = document.getElementById("photo-count");
+  if (countEl) countEl.style.display = "none";
 }
 
-// ===== REGISTER USER =====
+
+// ===== REGISTER USER ★ Hỗ trợ nhiều ảnh =====
 async function registerUser() {
   const name = document.getElementById("reg-name").value.trim();
 
@@ -659,8 +714,8 @@ async function registerUser() {
     return;
   }
 
-  if (!capturedImage) {
-    showToast("warning", "📷 Vui lòng chụp ảnh khuôn mặt trước");
+  if (capturedImages.length === 0) {
+    showToast("warning", "📷 Vui lòng chụp ảnh hoặc tải ảnh khuôn mặt trước");
     return;
   }
 
@@ -668,9 +723,17 @@ async function registerUser() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> Đang đăng ký...`;
 
+  // ★ Gửi tất cả ảnh đã chụp/tải
+  const payload = { name };
+  if (capturedImages.length === 1) {
+    payload.image = capturedImages[0];
+  } else {
+    payload.images = capturedImages;
+  }
+
   const data = await apiFetch("/register", {
     method: "POST",
-    body: JSON.stringify({ name, image: capturedImage })
+    body: JSON.stringify(payload)
   });
 
   btn.disabled = false;
@@ -693,12 +756,14 @@ async function registerUser() {
     // Reset form after 2s
     setTimeout(() => {
       document.getElementById("reg-name").value = "";
-      capturedImage = null;
+      capturedImages = [];
       document.getElementById("snapshot-preview").style.display = "none";
       document.getElementById("step-photo").classList.remove("done");
       document.getElementById("step-done").classList.remove("done");
       document.getElementById("step-photo").querySelector(".step-icon").textContent = "2";
       document.getElementById("step-done").querySelector(".step-icon").textContent = "3";
+      const countEl = document.getElementById("photo-count");
+      if (countEl) countEl.style.display = "none";
     }, 2000);
 
     loadStats();

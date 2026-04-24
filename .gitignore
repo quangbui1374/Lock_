@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 db.json
 log.json
+Python/opencv/
+Python/Datasheet/
+Python/trainer/
+generate_ssl.sh
+yolov8l-face.pt

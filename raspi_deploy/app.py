@@ -222,10 +222,18 @@ def register():
     try:
         data = request.json
         name = data.get("name", "").strip()
-        img_base64 = data.get("image", "")
+        images = data.get("images", [])       # Mảng ảnh base64 (multi-capture)
+        img_base64 = data.get("image", "")     # Ảnh đơn (backward compatible)
 
         if not name:
             return jsonify({"status": "error", "message": "Tên không được để trống"}), 400
+
+        # Nếu không có mảng ảnh, fallback về ảnh đơn
+        if not images and img_base64:
+            images = [img_base64]
+
+        if not images:
+            return jsonify({"status": "error", "message": "Cần ít nhất 1 ảnh"}), 400
 
         db = load_db()
 
@@ -233,13 +241,15 @@ def register():
             db[name] = {
                 "registered_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "access_count": 0,
-                "avatar": img_base64[:100] + "..." if img_base64 else "",
-                "full_image": img_base64
+                "avatar": images[0][:100] + "..." if images[0] else "",
+                "full_image": images[0],         # Ảnh đầu tiên làm avatar
+                "face_images": images             # Lưu tất cả ảnh
             }
         else:
-            # Update image if re-registering
-            db[name]["full_image"] = img_base64
-            db[name]["avatar"] = img_base64[:100] + "..." if img_base64 else ""
+            # Update images if re-registering
+            db[name]["full_image"] = images[0]
+            db[name]["avatar"] = images[0][:100] + "..." if images[0] else ""
+            db[name]["face_images"] = images
 
         save_db(db)
 
@@ -247,12 +257,13 @@ def register():
             "user": name,
             "status": "registered",
             "type": "register",
+            "image_count": len(images),
             "time": time.strftime("%Y-%m-%d %H:%M:%S"),
             "timestamp": time.time()
         }
         save_log(log_data)
 
-        return jsonify({"status": "success", "message": f"Đã đăng ký {name} thành công!"})
+        return jsonify({"status": "success", "message": f"Đã đăng ký {name} với {len(images)} ảnh!"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -595,4 +606,27 @@ def esp_status():
 if __name__ == "__main__":
     # use_reloader=False QUAN TRỌNG: tránh Flask tạo 2 process
     # cả 2 cùng client_id MQTT → broker kick nhau → không bao giờ kết nối được
-    app.run(debug=True, host="0.0.0.0", port=5000, threaded=True, use_reloader=False)
+
+    ssl_cert = os.path.join(os.path.dirname(__file__), "ssl", "cert.pem")
+    ssl_key  = os.path.join(os.path.dirname(__file__), "ssl", "key.pem")
+
+    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
+        print("=" * 50)
+        print("  🔒 HTTPS MODE — Camera (getUserMedia) sẽ hoạt động!")
+        print(f"  Truy cập: https://<IP_Pi>:5000")
+        print("  ⚠️  Trình duyệt sẽ cảnh báo certificate — chọn 'Advanced > Proceed'")
+        print("=" * 50)
+        app.run(
+            debug=True, host="0.0.0.0", port=5000,
+            threaded=True, use_reloader=False,
+            ssl_context=(ssl_cert, ssl_key)
+        )
+    else:
+        print("=" * 50)
+        print("  ⚠️  HTTP MODE — Camera có thể không hoạt động trên trình duyệt!")
+        print("  Để bật HTTPS, chạy: bash generate_ssl.sh")
+        print("=" * 50)
+        app.run(
+            debug=True, host="0.0.0.0", port=5000,
+            threaded=True, use_reloader=False
+        )

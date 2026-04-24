@@ -576,10 +576,40 @@ async function clearLogs() {
   }
 }
 
-// ===== CAMERA =====
+// ===== CAMERA (với polyfill cho Pi / non-HTTPS) =====
+let capturedImages = [];        // Mảng chứa nhiều ảnh base64
+const MAX_CAPTURES = 5;         // Số ảnh tối đa cần chụp
+
+function _getUserMedia(constraints) {
+  // Polyfill: một số trình duyệt cũ / trên Pi không có navigator.mediaDevices
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+  // Fallback cho trình duyệt cũ
+  const legacyGetUserMedia = navigator.getUserMedia
+    || navigator.webkitGetUserMedia
+    || navigator.mozGetUserMedia
+    || navigator.msGetUserMedia;
+  if (legacyGetUserMedia) {
+    return new Promise((resolve, reject) => {
+      legacyGetUserMedia.call(navigator, constraints, resolve, reject);
+    });
+  }
+  return Promise.reject(new Error("Trình duyệt không hỗ trợ getUserMedia"));
+}
+
 async function startCamera() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
+    // Kiểm tra secure context (HTTPS hoặc localhost)
+    if (window.isSecureContext === false) {
+      showToast("warning",
+        "⚠️ Camera cần HTTPS! Hãy truy cập qua <b>https://</b> hoặc <b>localhost</b>",
+        8000);
+      console.warn("[CAM] Trang không phải Secure Context → getUserMedia bị chặn.");
+      // Vẫn thử tiếp — một số trình duyệt cho phép qua flag
+    }
+
+    stream = await _getUserMedia({
       video: { width: 640, height: 480, facingMode: "user" },
       audio: false
     });
@@ -593,9 +623,22 @@ async function startCamera() {
     document.getElementById("start-cam-btn").style.display = "none";
     document.getElementById("stop-cam-btn").style.display = "inline-flex";
 
-    showToast("success", "📷 Camera đã bật");
+    // Reset bộ đếm chụp
+    capturedImages = [];
+    updateCaptureCounter();
+
+    showToast("success", "📷 Camera đã bật — Hãy chụp 5 ảnh các góc khác nhau");
   } catch (err) {
-    showToast("error", "❌ Không thể truy cập camera: " + err.message);
+    let hint = err.message;
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      hint = "Quyền camera bị từ chối. Vui lòng cấp quyền trong trình duyệt.";
+    } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+      hint = "Không tìm thấy camera. Kiểm tra kết nối USB Webcam.";
+    } else if (!navigator.mediaDevices && !navigator.getUserMedia) {
+      hint = "Trình duyệt không hỗ trợ camera. Truy cập bằng HTTPS hoặc localhost.";
+    }
+    showToast("error", "❌ Không thể truy cập camera: " + hint, 8000);
+    console.error("[CAM] getUserMedia error:", err);
   }
 }
 
@@ -614,7 +657,40 @@ function stopCamera() {
   showToast("info", "📷 Camera đã tắt");
 }
 
+function updateCaptureCounter() {
+  const counter = document.getElementById("capture-counter");
+  if (counter) {
+    counter.textContent = `${capturedImages.length} / ${MAX_CAPTURES}`;
+    counter.style.color = capturedImages.length >= MAX_CAPTURES ? "#4ade80" : "#f59e0b";
+  }
+  // Cập nhật thanh preview grid
+  const grid = document.getElementById("multi-preview-grid");
+  if (grid) {
+    grid.innerHTML = capturedImages.map((img, i) => `
+      <div class="multi-preview-item">
+        <img src="data:image/jpeg;base64,${img}" alt="Ảnh ${i + 1}" />
+        <span class="multi-preview-num">${i + 1}</span>
+        <button class="multi-preview-del" onclick="removeCapture(${i})" title="Xóa">✕</button>
+      </div>
+    `).join("");
+  }
+}
+
+function removeCapture(index) {
+  capturedImages.splice(index, 1);
+  updateCaptureCounter();
+  if (capturedImages.length === 0) {
+    document.getElementById("step-photo").classList.remove("done");
+    document.getElementById("step-photo").querySelector(".step-icon").textContent = "2";
+  }
+}
+
 function capturePhoto() {
+  if (capturedImages.length >= MAX_CAPTURES) {
+    showToast("warning", `📸 Đã chụp đủ ${MAX_CAPTURES} ảnh. Nhấn "Xóa hết" nếu muốn chụp lại.`);
+    return;
+  }
+
   const video = document.getElementById("webcam");
   const canvas = document.getElementById("snapshot-canvas");
   const ctx = canvas.getContext("2d");
@@ -624,29 +700,39 @@ function capturePhoto() {
   ctx.drawImage(video, 0, 0);
 
   // Get base64
-  capturedImage = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
-
-  // Show preview
-  document.getElementById("snapshot-img").src = canvas.toDataURL("image/jpeg", 0.85);
-  document.getElementById("snapshot-preview").style.display = "block";
+  const imgBase64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+  capturedImages.push(imgBase64);
 
   // Flash effect
   const overlay = document.getElementById("face-overlay");
   overlay.style.background = "rgba(255,255,255,0.3)";
   setTimeout(() => { overlay.style.background = "none"; }, 200);
 
-  // Update step
-  document.getElementById("step-photo").classList.add("done");
-  document.getElementById("step-photo").querySelector(".step-icon").textContent = "✓";
+  updateCaptureCounter();
 
-  showToast("success", "📸 Chụp ảnh thành công!");
+  // Hiện preview grid
+  document.getElementById("snapshot-preview").style.display = "block";
+
+  const remaining = MAX_CAPTURES - capturedImages.length;
+  if (remaining > 0) {
+    const hints = ["Nghiêng trái", "Nghiêng phải", "Ngẩng lên", "Cúi nhẹ"];
+    const hint = hints[capturedImages.length - 1] || "Góc khác";
+    showToast("info", `📸 Ảnh ${capturedImages.length}/${MAX_CAPTURES} ✓ — Tiếp theo: <b>${hint}</b>`, 3000);
+  } else {
+    showToast("success", `📸 Đã chụp đủ ${MAX_CAPTURES} ảnh! Có thể đăng ký.`);
+    // Update step
+    document.getElementById("step-photo").classList.add("done");
+    document.getElementById("step-photo").querySelector(".step-icon").textContent = "✓";
+  }
 }
 
 function retakePhoto() {
+  capturedImages = [];
   capturedImage = null;
   document.getElementById("snapshot-preview").style.display = "none";
   document.getElementById("step-photo").classList.remove("done");
   document.getElementById("step-photo").querySelector(".step-icon").textContent = "2";
+  updateCaptureCounter();
 }
 
 // ===== REGISTER USER =====
@@ -659,18 +745,19 @@ async function registerUser() {
     return;
   }
 
-  if (!capturedImage) {
-    showToast("warning", "📷 Vui lòng chụp ảnh khuôn mặt trước");
+  if (capturedImages.length < 3) {
+    showToast("warning", `📷 Cần chụp ít nhất 3 ảnh (đã chụp ${capturedImages.length}/${MAX_CAPTURES})`);
     return;
   }
 
   const btn = document.getElementById("register-btn");
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner"></span> Đang đăng ký...`;
+  btn.innerHTML = `<span class="spinner"></span> Đang đăng ký ${capturedImages.length} ảnh...`;
 
+  // Gửi mảng ảnh — backend sẽ lưu tất cả
   const data = await apiFetch("/register", {
     method: "POST",
-    body: JSON.stringify({ name, image: capturedImage })
+    body: JSON.stringify({ name, images: capturedImages, image: capturedImages[0] })
   });
 
   btn.disabled = false;
@@ -693,12 +780,14 @@ async function registerUser() {
     // Reset form after 2s
     setTimeout(() => {
       document.getElementById("reg-name").value = "";
+      capturedImages = [];
       capturedImage = null;
       document.getElementById("snapshot-preview").style.display = "none";
       document.getElementById("step-photo").classList.remove("done");
       document.getElementById("step-done").classList.remove("done");
       document.getElementById("step-photo").querySelector(".step-icon").textContent = "2";
       document.getElementById("step-done").querySelector(".step-icon").textContent = "3";
+      updateCaptureCounter();
     }, 2000);
 
     loadStats();

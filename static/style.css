@@ -1996,3 +1996,64 @@ body::after {
   }
 }
 
+/* ===== UPLOAD FALLBACK ===== */
+.upload-fallback {
+  margin-top: 16px;
+}
+
+.upload-area {
+  position: relative;
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 2px dashed rgba(139, 92, 246, 0.3);
+  border-radius: var(--border-radius);
+  background: rgba(139, 92, 246, 0.04);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.upload-label:hover {
+  border-color: var(--purple-400);
+  background: rgba(139, 92, 246, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+}
+
+.upload-label svg {
+  color: var(--purple-400);
+  opacity: 0.7;
+}
+
+.upload-label span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--purple-400);
+}
+
+.upload-label small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Photo count badge */
+.photo-count {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple-400);
+  background: rgba(139, 92, 246, 0.12);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  display: inline-block;
+}
+
